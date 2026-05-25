@@ -2,6 +2,11 @@ packages:
   - "apps/*"
   - "packages/*"
   - "services/*"
+# pnpm 11 exige paquetes con al menos 24 h publicados (supply-chain). El lockfile
+# debe generarse con la misma versión de pnpm que CI (ver packageManager).
+minimumReleaseAge: 1440
+overrides:
+  es-toolkit: 1.46.1
 allowBuilds:
   '@nestjs/core': true
   esbuild: true
