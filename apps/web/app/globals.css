@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/* Decirle a Tailwind v4 dónde buscar clases para el tree-shaking */
+@source "../app/**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source "../lib/**/*.{ts,tsx}";
+
+/*
+  Tokens de Posta — Editorial cálido
+  Fuente: docs/DESIGN_SYSTEM.md §2, §3, §5
+  Usar siempre los tokens, nunca hex hardcodeados en componentes.
+*/
+@theme {
+  /* ── Superficie ── */
+  --color-ink: #1a1612;
+  --color-ink-soft: #3a312a;
+  --color-muted: #7a6e62;
+  --color-rule: #d8cfc0;
+  --color-rule-soft: #ece5d6;
+  --color-paper: #faf6ec;
+  --color-paper-warm: #f3ecdb;
+  --color-paper-deep: #ebe2cc;
+  --color-card: #ffffff;
+
+  /* ── Acento (terracota) ── */
+  --color-accent: #c9542e;
+  --color-accent-soft: #f4d6c8;
+  --color-accent-deep: #9a3e21;
+
+  /* ── Semánticos ── */
+  --color-ok: #3e7d4a;
+  --color-ok-soft: #dde8d2;
+  --color-warn: #b8862a;
+  --color-warn-soft: #f3e4be;
+  --color-err: #a83a2a;
+  --color-err-soft: #f3d4ca;
+  --color-info: #5a5346;
+  --color-info-soft: #e7e1d2;
+
+  /* ── Tipografía ── */
+  --font-serif: "Instrument Serif", "Source Serif Pro", Georgia, serif;
+  --font-sans: "Geist", -apple-system, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* ── Forma ── */
+  --radius: 2px;
+  --shadow: 0 1px 2px rgba(60, 40, 20, 0.08), 0 8px 24px -8px rgba(60, 40, 20, 0.12);
+  --shadow-flat: 0 1px 0 rgba(60, 40, 20, 0.06);
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
