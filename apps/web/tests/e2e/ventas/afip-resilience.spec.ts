@@ -1,19 +1,18 @@
 /**
  * E2E — resiliencia AFIP (requiere API con AFIP_MOCK_FAIL=true).
- * Corre con: E2E_AFIP_FAIL=1 pnpm test:e2e --grep "AFIP"
+ * Corre con: E2E_AFIP_FAIL=1 pnpm test:e2e:afip
  */
 import { test, expect } from '@playwright/test';
+import { agregarProductoAlCarrito, prepararPosConProducto } from '../helpers/pos-ui';
 
 const skip = !process.env.E2E_AFIP_FAIL;
 
 test.describe('AFIP resilience', () => {
   test.skip(skip, 'Requiere AFIP_MOCK_FAIL=true en la API y E2E_AFIP_FAIL=1');
 
-  test('venta queda pendiente y permite reintento manual', async ({ page }) => {
-    await page.goto('/ventas');
-    const producto = page.locator('button:not([disabled])').filter({ hasText: 'stock:' }).first();
-    await expect(producto).toBeVisible({ timeout: 10_000 });
-    await producto.click();
+  test('venta queda pendiente y permite reintento manual', async ({ page, request }) => {
+    const nombreProducto = await prepararPosConProducto(page, request);
+    await agregarProductoAlCarrito(page, nombreProducto);
 
     await page.getByRole('button', { name: 'Confirmar venta' }).click();
     await expect(page.getByText('Venta registrada')).toBeVisible({ timeout: 15_000 });
