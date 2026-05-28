@@ -45,7 +45,7 @@ export class ClientesService {
     return row;
   }
 
-  async create(tenantId: string, dto: CreateClienteDto) {
+  async create(tenantId: string, userId: string, dto: CreateClienteDto) {
     const [row] = await withTenant(tenantId, (tx) =>
       tx.insert(clientes).values({
         tenant_id: tenantId,
@@ -54,6 +54,7 @@ export class ClientesService {
         telefono: dto.telefono ?? null,
         cuit: dto.cuit ?? null,
         direccion: dto.direccion ?? null,
+        created_by: userId,
       }).returning(),
     );
     return row;

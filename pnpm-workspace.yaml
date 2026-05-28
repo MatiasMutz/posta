@@ -9,6 +9,7 @@ overrides:
   es-toolkit: 1.46.1
 allowBuilds:
   '@nestjs/core': true
+  '@scarf/scarf': true
   esbuild: true
   msgpackr-extract: true
   sharp: true

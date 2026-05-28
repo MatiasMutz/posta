@@ -20,7 +20,7 @@ export class FacturacionProcessor extends WorkerHost {
     this.logger.log(`Reintentando facturación para venta ${ventaId} (intento ${job.attemptsMade + 1})`);
 
     try {
-      await this.ventasService.reintentar(tenantId, ventaId);
+      await this.ventasService.reintentarAutomatico(tenantId, ventaId);
       this.logger.log(`Facturación exitosa para venta ${ventaId}`);
     } catch (err) {
       // Si se agotaron los intentos, marcar como error_afip definitivo

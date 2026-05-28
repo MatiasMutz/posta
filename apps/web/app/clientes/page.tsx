@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { LIMITE_PAGINA_DEFAULT, parsePagina } from '@/lib/paginacion';
 import { NavFlotante } from '@/components/nav/NavFlotante';
-import { APrice, APaginacion } from '@/components/ui';
+import { APrice, APaginacion, ABtn } from '@/components/ui';
+import { esPositivo } from '@/lib/money';
 import type { ApiResponse } from '@posta/shared-types';
 
 interface Cliente {
@@ -22,10 +23,9 @@ export default async function ClientesPage({
 }: {
   searchParams: Promise<{ pagina?: string }>;
 }) {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
-  const rol = session.user.app_metadata?.rol;
   if (rol === 'vendedor') redirect('/ventas');
 
   const { pagina: paginaParam } = await searchParams;
@@ -38,7 +38,7 @@ export default async function ClientesPage({
   try {
     const res = await apiClient<ApiResponse<Cliente[]>>(
       `/clientes?pagina=${pagina}&limite=${LIMITE_PAGINA_DEFAULT}`,
-      { token: session.access_token },
+      { token: accessToken },
     );
     clientesList = res.data;
     total = res.meta?.total ?? clientesList.length;
@@ -58,11 +58,8 @@ export default async function ClientesPage({
             <h1 className="font-serif text-2xl text-ink">Clientes</h1>
             <p className="font-sans text-sm text-muted">{total} cliente{total !== 1 ? 's' : ''}</p>
           </div>
-          <Link
-            href="/clientes/nuevo"
-            className="px-3 py-1.5 font-sans text-xs font-medium bg-accent text-card rounded-[2px] hover:opacity-90 transition-opacity"
-          >
-            + Nuevo cliente
+          <Link href="/clientes/nuevo">
+            <ABtn variant="primary" size="sm">+ Nuevo cliente</ABtn>
           </Link>
         </div>
 
@@ -106,8 +103,8 @@ export default async function ClientesPage({
                         <span className="font-sans text-xs text-muted">{c.email ?? '—'}</span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        {parseFloat(c.saldo_deudor) > 0 ? (
-                          <APrice value={c.saldo_deudor} className="text-sm text-err" />
+                        {esPositivo(c.saldo_deudor) ? (
+                          <APrice value={c.saldo_deudor} className="text-sm text-neg" />
                         ) : (
                           <span className="font-mono text-xs text-muted">$0</span>
                         )}

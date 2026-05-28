@@ -40,4 +40,4 @@ Normaliza → match exacto → Levenshtein con umbral 80%. Nunca auto-mapea por 
 Bucket: `imports`. Archivos en `{tenantId}/{timestamp}-{filename}`.
 - El frontend obtiene la URL firmada vía `GET /imports/upload-url` y sube directo a Supabase Storage.
 - El worker descarga con el admin client (`SUPABASE_SERVICE_ROLE_KEY`).
-- Las policies de Storage están en `drizzle/0003_clientes_imports.sql` (comentadas; se aplican en el dashboard de Supabase).
+- Las policies de Storage están en `drizzle/0005_storage_imports.sql` (bucket `imports`).

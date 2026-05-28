@@ -1,11 +1,10 @@
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { APrice, APill } from '@/components/ui';
 import { BtnReintentarAfip } from '@/components/ventas/BtnReintentarAfip';
-import type { Rol } from '@posta/shared-types';
 
 interface ItemVenta {
   id: string;
@@ -57,15 +56,15 @@ export default async function VentaDetallePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
   const { id } = await params;
-  const rol = (session.user.app_metadata?.rol ?? 'vendedor') as Rol;
 
   let venta: Venta;
   try {
-    venta = await apiClient<Venta>(`/ventas/${id}`, { token: session.access_token });
+    const res = await apiClient<{ data: Venta }>(`/ventas/${id}`, { token: accessToken });
+    venta = res.data;
   } catch (err) {
     if (err instanceof ApiError && err.statusCode === 401) {
       redirect(`/login?error=${encodeURIComponent(err.message)}`);
@@ -164,7 +163,7 @@ export default async function VentaDetallePage({
         {/* Reintento AFIP */}
         {(venta.estado === 'pendiente_facturacion' || venta.estado === 'error_afip') && rol === 'dueno' && (
           <div className="mb-4">
-            <BtnReintentarAfip ventaId={venta.id} token={session.access_token} />
+            <BtnReintentarAfip ventaId={venta.id} token={accessToken} />
           </div>
         )}
 

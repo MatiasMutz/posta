@@ -28,4 +28,4 @@ Si el paso 2-4 falla, se elimina el usuario de Supabase (limpieza de usuario hu√
 @Get('finanzas')
 ```
 
-El vendedor NUNCA recibe `costo` ni `ganancia` en ninguna respuesta.
+El vendedor y el contador NUNCA reciben `costo` ni `ganancia` en ninguna respuesta. Solo el due√±o ve costos.

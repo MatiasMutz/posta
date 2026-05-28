@@ -90,14 +90,14 @@ describe('ClientesService.create', () => {
   it('crea un cliente nuevo', async () => {
     mockTx.returning.mockResolvedValueOnce([fakeCliente]);
     const svc = new ClientesService();
-    const result = await svc.create('tenant-1', {
+    const result = await svc.create('tenant-1', 'user-1', {
       nombre: 'Juan Pérez',
       email: 'juan@example.com',
       cuit: '20123456789',
     });
     expect(result.nombre).toBe('Juan Pérez');
     expect(mockTx.values).toHaveBeenCalledWith(
-      expect.objectContaining({ nombre: 'Juan Pérez', tenant_id: 'tenant-1' }),
+      expect.objectContaining({ nombre: 'Juan Pérez', tenant_id: 'tenant-1', created_by: 'user-1' }),
     );
   });
 });

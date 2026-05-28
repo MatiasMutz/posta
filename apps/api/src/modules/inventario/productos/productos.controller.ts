@@ -16,8 +16,12 @@ import {
 } from '@posta/validation';
 import { respuestaPaginada } from '../../../common/pagination';
 import type { TenantUser } from '@posta/shared-types';
+import {
+  ApiAuthController, ApiGetAuth, ApiPostAuth, ApiPatchAuth, ApiDeleteAuth,
+} from '../../../common/swagger/controller-docs';
 
 @Controller('inventario/productos')
+@ApiAuthController('inventario')
 @UseGuards(JwtGuard, RolesGuard)
 export class ProductosController {
   constructor(
@@ -26,6 +30,7 @@ export class ProductosController {
   ) {}
 
   @Get()
+  @ApiGetAuth('Listar productos paginados')
   async findAll(
     @CurrentUser() user: TenantUser,
     @Query(new ZodValidationPipe(ListProductosQuerySchema)) query: ListProductosQuery,
@@ -35,12 +40,14 @@ export class ProductosController {
   }
 
   @Get(':id')
+  @ApiGetAuth('Detalle de producto')
   async findOne(@CurrentUser() user: TenantUser, @Param('id') id: string) {
     const data = await this.productosService.findOne(user.tenantId, id, user.rol);
     return { data };
   }
 
   @Post()
+  @ApiPostAuth('Crear producto')
   @Roles('dueno')
   async create(
     @CurrentUser() user: TenantUser,
@@ -51,6 +58,7 @@ export class ProductosController {
   }
 
   @Patch(':id')
+  @ApiPatchAuth('Actualizar producto')
   @Roles('dueno')
   async update(
     @CurrentUser() user: TenantUser,
@@ -62,6 +70,7 @@ export class ProductosController {
   }
 
   @Delete(':id')
+  @ApiDeleteAuth('Desactivar producto (soft delete)')
   @Roles('dueno')
   @HttpCode(HttpStatus.OK)
   async remove(@CurrentUser() user: TenantUser, @Param('id') id: string) {
@@ -70,6 +79,7 @@ export class ProductosController {
   }
 
   @Post(':id/movimientos')
+  @ApiPostAuth('Registrar movimiento de stock')
   @Roles('dueno')
   async registrarMovimiento(
     @CurrentUser() user: TenantUser,
@@ -86,6 +96,7 @@ export class ProductosController {
   }
 
   @Get(':id/movimientos')
+  @ApiGetAuth('Historial de movimientos de un producto')
   @Roles('dueno', 'contador')
   async listarMovimientos(
     @CurrentUser() user: TenantUser,

@@ -47,7 +47,7 @@ export function GrillaRevision({ jobId, token, errores, onExito }: GrillaRevisio
     setEnviando(true);
     setError('');
     try {
-      const { importados } = await apiClient<{ importados: number; erroresResidual: number }>(
+      const { data } = await apiClient<{ data: { importados: number; erroresResidual: number } }>(
         `/imports/${jobId}/reintento`,
         {
           method: 'POST',
@@ -57,6 +57,10 @@ export function GrillaRevision({ jobId, token, errores, onExito }: GrillaRevisio
           }),
         },
       );
+      const { importados, erroresResidual } = data;
+      if (erroresResidual === 0) {
+        setFilas([]);
+      }
       onExito(importados);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al reimportar las filas.');
@@ -66,9 +70,9 @@ export function GrillaRevision({ jobId, token, errores, onExito }: GrillaRevisio
   }
 
   return (
-    <div className="space-y-4">
+    <section className="space-y-4" aria-label="Corrección de filas con errores">
       <div className="flex items-center justify-between">
-        <p className="font-sans text-sm text-ink">
+        <p id="grilla-revision-titulo" className="font-sans text-sm text-ink">
           <span className="text-err font-medium">{filas.length}</span> fila{filas.length !== 1 ? 's' : ''} con errores — corregí los campos en rojo y reimportá.
         </p>
       </div>
@@ -105,6 +109,9 @@ export function GrillaRevision({ jobId, token, errores, onExito }: GrillaRevisio
                         <input
                           value={fila.datos[campo] ?? ''}
                           onChange={(e) => handleEditar(fila.numero, campo, e.target.value)}
+                          aria-label={`${campo}, fila ${fila.numero}`}
+                          aria-invalid={tieneError}
+                          aria-describedby={tieneError ? `err-${fila.numero}-${campo}` : undefined}
                           className={[
                             'w-full px-2 py-1 font-sans text-xs rounded-[2px] border focus:outline-none',
                             tieneError
@@ -118,7 +125,11 @@ export function GrillaRevision({ jobId, token, errores, onExito }: GrillaRevisio
                   <td className="py-2 px-3">
                     <ul className="space-y-0.5">
                       {fila.problemas.map((p, i) => (
-                        <li key={i} className="font-sans text-xs text-err">
+                        <li
+                          key={i}
+                          id={i === 0 ? `err-${fila.numero}-${p.campo}` : undefined}
+                          className="font-sans text-xs text-err"
+                        >
                           <span className="font-medium">{p.campo}:</span> {p.motivo}
                         </li>
                       ))}
@@ -138,6 +149,6 @@ export function GrillaRevision({ jobId, token, errores, onExito }: GrillaRevisio
       <ABtn variant="primary" onClick={handleReintento} disabled={enviando}>
         {enviando ? 'Reimportando...' : `Reimportar ${filas.length} fila${filas.length !== 1 ? 's' : ''}`}
       </ABtn>
-    </div>
+    </section>
   );
 }

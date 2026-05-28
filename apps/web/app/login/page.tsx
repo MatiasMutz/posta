@@ -1,13 +1,13 @@
 'use client';
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 import { apiClient } from '@/lib/api-client';
+import { rutaInicioTrasAuth } from '@/lib/auth-api';
 import { ABtn } from '@/components/ui';
 
 // Separado en componente propio porque useSearchParams requiere Suspense en Next.js 15
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<'login' | 'registro'>('login');
   const [email, setEmail] = useState('');
@@ -47,8 +47,8 @@ function LoginForm() {
         throw new Error('No se pudo iniciar sesión. Intentá de nuevo.');
       }
 
-      router.push('/inventario');
-      router.refresh();
+      // Navegación completa: asegura cookies de sesión antes del middleware/RSC
+      window.location.assign(await rutaInicioTrasAuth(data.session.access_token));
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       setError(msg || 'Error al iniciar sesión. Intentá de nuevo.');
@@ -62,17 +62,17 @@ function LoginForm() {
     setLoading(true);
     setError('');
     try {
-      const { access_token, refresh_token } = await apiClient<{
-        access_token: string;
-        refresh_token: string;
-      }>('/auth/registro', {
+      const { data } = await apiClient<{ data: { access_token: string; refresh_token: string } }>('/auth/registro', {
         method: 'POST',
         body: JSON.stringify({ email, password, nombreTenant }),
       });
       const supabase = createSupabaseBrowser();
-      await supabase.auth.setSession({ access_token, refresh_token });
-      router.push('/inventario');
-      router.refresh();
+      const { data: sessionData } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+      if (!sessionData.session) throw new Error('No se pudo iniciar sesión tras el registro.');
+      window.location.assign(await rutaInicioTrasAuth(sessionData.session.access_token));
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       setError(msg || 'Error al crear la cuenta. Intentá de nuevo.');
@@ -151,16 +151,10 @@ function LoginForm() {
           />
         </div>
 
-        {/* Inline style en vez de Tailwind: garantiza que siempre se muestre */}
         {error && (
           <div
             role="alert"
-            className="font-sans text-sm px-3 py-2 rounded-[2px]"
-            style={{
-              color: 'var(--color-err)',
-              background: 'var(--color-err-soft)',
-              border: '1px solid var(--color-err)',
-            }}
+            className="font-sans text-sm px-3 py-2 rounded-[2px] bg-err-soft border border-err text-err"
           >
             {error}
           </div>

@@ -46,7 +46,12 @@ export function BarraProgreso({ estado, fase, progreso, total, filasOk, filasErr
       </div>
 
       {(filasOk > 0 || filasError > 0) && (
-        <div className="flex gap-4">
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label="Resumen de importación"
+          className="flex gap-4"
+        >
           {filasOk > 0 && (
             <span className="font-sans text-xs text-ok">
               ✓ {filasOk} importada{filasOk !== 1 ? 's' : ''}
@@ -54,7 +59,7 @@ export function BarraProgreso({ estado, fase, progreso, total, filasOk, filasErr
           )}
           {filasError > 0 && (
             <span className="font-sans text-xs text-err">
-              ✗ {filasError} con error{filasError !== 1 ? 'es' : ''}
+              ✗ {filasError} rechazada{filasError !== 1 ? 's' : ''}
             </span>
           )}
         </div>

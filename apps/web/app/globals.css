@@ -37,6 +37,12 @@
   --color-info: #5a5346;
   --color-info-soft: #e7e1d2;
 
+  /* Alias de saldos (DESIGN_SYSTEM §2) */
+  --color-pos: var(--color-ok);
+  --color-pos-soft: var(--color-ok-soft);
+  --color-neg: var(--color-err);
+  --color-neg-soft: var(--color-err-soft);
+
   /* ── Tipografía ── */
   --font-serif: "Instrument Serif", "Source Serif Pro", Georgia, serif;
   --font-sans: "Geist", -apple-system, system-ui, sans-serif;

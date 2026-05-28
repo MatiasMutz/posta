@@ -8,10 +8,13 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { validateEnv } from './config/env.schema';
 
 async function bootstrap() {
+  validateEnv();
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({ logger: true }),
@@ -19,8 +22,17 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Posta API')
+    .setDescription('API REST del hub de gestión PyME')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/v1/docs', app, document);
+
   // Normaliza todos los errores al formato { statusCode, mensaje, errores? }
-  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // CORS: permite llamadas desde el frontend Next.js
   app.enableCors({

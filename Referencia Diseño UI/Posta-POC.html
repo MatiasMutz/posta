@@ -2620,7 +2620,7 @@ const ClosingRecommendation = () => {
   const ModuleCard = ({ icon, title, status, bullets, statusTone }) => {
     const tones = {
       poc:  { bg: A.accentSoft,  fg: A.accentDeep, label: 'En este POC' },
-      next: { bg: A.warnSoft,    fg: A.warn,        label: 'Próximo MVP' },
+      next: { bg: A.warnSoft,    fg: A.warn,        label: 'Próxima fase' },
       road: { bg: A.paperDeep,   fg: A.muted,       label: 'Hoja de ruta' },
     };
     const t = tones[statusTone] || tones.road;
@@ -2684,7 +2684,7 @@ const ClosingRecommendation = () => {
           <p style={{ margin: 0, fontFamily: A.sans, fontSize: 14, lineHeight: 1.6, color: A.muted }}>
             Este POC muestra el flujo de trabajo completo de una PyME argentina: ventas,
             stock, caja, migración de datos y cumplimiento fiscal. El diseño está listo para
-            validar con usuarios reales y derivar hacia el MVP.
+            validar con usuarios reales y derivar hacia el producto.
           </p>
         </div>
       </div>
@@ -2756,13 +2756,13 @@ const ClosingRecommendation = () => {
         </div>
       </div>
 
-      {/* Próximo MVP + Stack */}
+      {/* Próxima fase + Stack */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, flex: 1 }}>
 
         {/* Próximos módulos */}
         <div style={{ background: A.card, border: `1px solid ${A.rule}`, borderRadius: A.radius, padding: '18px 20px' }}>
           <div style={{ fontFamily: A.mono, fontSize: 10, color: A.muted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>
-            próximos módulos · MVP
+            próximos módulos · roadmap
           </div>
           {[
             { icon: 'pos',    label: 'Sincronización Mercado Libre · Shopify · Tiendanube' },
@@ -2808,7 +2808,7 @@ const ClosingRecommendation = () => {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
             {[
               { n: '1', t: 'Validación con usuarios', d: 'Kiosco, almacén y gastronómica. Prioridad: flujo del POS, wizard de importación y comprensión de KPIs.' },
-              { n: '2', t: 'Definir MVP técnico', d: 'Stack, arquitectura multi-tenant, prioridad de módulos. Timeframe: 3-4 meses.' },
+              { n: '2', t: 'Definir arquitectura del producto', d: 'Stack, arquitectura multi-tenant, prioridad de módulos. Timeframe: 3-4 meses.' },
               { n: '3', t: 'Piloto con 2 PyMEs', d: 'Beta cerrada para medir retención, NPS y cobertura del workflow real antes de lanzar.' },
             ].map((s) => (
               <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -2889,7 +2889,7 @@ window.ClosingRecommendation = ClosingRecommendation;
         </DCSection>
 
         {/* CIERRE */}
-        <DCSection id="closing" title="Alcance del POC y hoja de ruta" subtitle="Qué se muestra hoy · qué viene en el MVP">
+        <DCSection id="closing" title="Alcance del POC y hoja de ruta" subtitle="Qué se muestra hoy · qué viene en el producto">
           <DCArtboard id="roadmap" label="Módulos y próximos pasos" width={1380} height={820}>
             <window.ClosingRecommendation />
           </DCArtboard>

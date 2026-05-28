@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { POS } from '@/components/ventas/POS';
-import type { ApiResponse, Rol } from '@posta/shared-types';
+import type { ApiResponse } from '@posta/shared-types';
 
 interface Producto {
   id: string;
@@ -21,20 +21,31 @@ interface Cliente {
   saldo_deudor: string;
 }
 
-export default async function VentasPage() {
-  const session = await getSession();
-  if (!session) redirect('/login');
+interface VentasPageProps {
+  searchParams: Promise<{ buscar?: string; cliente?: string }>;
+}
 
-  const rol = (session.user.app_metadata?.rol ?? 'vendedor') as Rol;
+export default async function VentasPage({ searchParams }: VentasPageProps) {
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
+  const { buscar: buscarProducto, cliente: buscarCliente } = await searchParams;
+
   if (rol === 'contador') redirect('/ventas/historial');
 
   let productos: Producto[] = [];
   let clientes: Cliente[] = [];
+  let errorMensaje: string | null = null;
+
+  const productosQuery = new URLSearchParams({ pagina: '1', limite: '200' });
+  if (buscarProducto) productosQuery.set('buscar', buscarProducto);
+
+  const clientesQuery = new URLSearchParams({ pagina: '1', limite: '200' });
+  if (buscarCliente) clientesQuery.set('buscar', buscarCliente);
 
   try {
     const [productosRes, clientesRes] = await Promise.all([
-      apiClient<ApiResponse<Producto[]>>('/inventario/productos?pagina=1&limite=200', { token: session.access_token }),
-      apiClient<ApiResponse<Cliente[]>>('/clientes?pagina=1&limite=200', { token: session.access_token }),
+      apiClient<ApiResponse<Producto[]>>(`/inventario/productos?${productosQuery}`, { token: accessToken }),
+      apiClient<ApiResponse<Cliente[]>>(`/clientes?${clientesQuery}`, { token: accessToken }),
     ]);
     productos = productosRes.data;
     clientes = clientesRes.data;
@@ -42,6 +53,7 @@ export default async function VentasPage() {
     if (err instanceof ApiError && err.statusCode === 401) {
       redirect(`/login?error=${encodeURIComponent(err.message)}`);
     }
+    errorMensaje = err instanceof Error ? err.message : 'Error al cargar el catálogo.';
   }
 
   return (
@@ -50,11 +62,25 @@ export default async function VentasPage() {
       <div className="max-w-5xl mx-auto px-4 pt-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-serif text-2xl text-ink">Punto de venta</h1>
-          <Link href="/ventas/historial" className="font-sans text-xs text-muted hover:text-accent transition-colors">
-            Ver historial →
-          </Link>
+          {rol !== 'vendedor' && (
+            <Link href="/ventas/historial" className="font-sans text-xs text-muted hover:text-accent transition-colors">
+              Ver historial →
+            </Link>
+          )}
         </div>
-        <POS productos={productos} clientes={clientes} token={session.access_token} />
+
+        {errorMensaje && (
+          <div className="bg-err-soft border border-err rounded-[2px] px-4 py-3 mb-4">
+            <p className="font-sans text-sm text-err">{errorMensaje}</p>
+          </div>
+        )}
+
+        <POS
+          productos={productos}
+          clientes={clientes}
+          token={accessToken}
+          buscarInicial={buscarProducto ?? ''}
+        />
       </div>
     </div>
   );

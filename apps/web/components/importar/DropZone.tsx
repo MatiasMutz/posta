@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useId, useState } from 'react';
 
 const EXTENSIONES_VALIDAS = ['.xlsx', '.xls', '.csv'];
 const MAX_MB = 10;
@@ -10,9 +10,9 @@ interface DropZoneProps {
 }
 
 export function DropZone({ onArchivo, cargando = false }: DropZoneProps) {
+  const inputId = useId();
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
   function validarArchivo(file: File): string | null {
     const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
@@ -46,16 +46,16 @@ export function DropZone({ onArchivo, cargando = false }: DropZoneProps) {
 
   return (
     <div>
-      <div
+      <label
+        htmlFor={inputId}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
-        onClick={() => !cargando && inputRef.current?.click()}
         className={[
           'flex flex-col items-center justify-center gap-3 px-6 py-12 rounded-[2px] border-2 border-dashed',
           'cursor-pointer transition-colors',
           dragging ? 'border-accent bg-accent-soft' : 'border-rule hover:border-ink-soft bg-card',
-          cargando ? 'opacity-50 cursor-not-allowed' : '',
+          cargando ? 'opacity-50 cursor-not-allowed pointer-events-none' : '',
         ].join(' ')}
       >
         <span className="font-sans text-4xl text-muted">↑</span>
@@ -67,13 +67,13 @@ export function DropZone({ onArchivo, cargando = false }: DropZoneProps) {
         <p className="font-mono text-[11px] text-muted uppercase tracking-wider">
           {EXTENSIONES_VALIDAS.join(' · ')} · máx. {MAX_MB} MB
         </p>
-      </div>
+      </label>
 
       <input
-        ref={inputRef}
+        id={inputId}
         type="file"
         accept=".xlsx,.xls,.csv"
-        className="hidden"
+        className="sr-only"
         onChange={handleChange}
         disabled={cargando}
       />

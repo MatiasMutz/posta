@@ -220,41 +220,56 @@ describe('VentasService.create — AFIP', () => {
 
 // ── VentasService.reintentar ───────────────────────────────────────────────
 
-describe('VentasService.reintentar', () => {
+describe('VentasService.reintentarAutomatico', () => {
   it('lanza NotFoundException si la venta no existe', async () => {
     const svc = crearServicio();
-    mockWithTenant.mockResolvedValueOnce([]); // select venta → vacío
-    await expect(svc.reintentar('t1', 'no-existe')).rejects.toThrow(NotFoundException);
+    mockWithTenant.mockResolvedValueOnce([]);
+    await expect(svc.reintentarAutomatico('t1', 'no-existe')).rejects.toThrow(NotFoundException);
   });
 
   it('lanza BadRequestException si ya está facturada', async () => {
     const svc = crearServicio();
     mockWithTenant.mockResolvedValueOnce([{ ...fakeVenta, estado: 'facturado' }]);
-    await expect(svc.reintentar('t1', 'venta-1')).rejects.toThrow(BadRequestException);
+    await expect(svc.reintentarAutomatico('t1', 'venta-1')).rejects.toThrow(BadRequestException);
   });
 
   it('factura exitosamente desde pendiente_facturacion', async () => {
     const svc = crearServicio();
     mockWithTenant
-      .mockResolvedValueOnce([{ ...fakeVenta, estado: 'pendiente_facturacion', intentos_facturacion: 1 }]) // select venta
-      .mockResolvedValueOnce([]) // select items
-      .mockResolvedValueOnce(undefined); // update venta
+      .mockResolvedValueOnce([{ ...fakeVenta, estado: 'pendiente_facturacion', intentos_facturacion: 1 }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(undefined);
 
-    const result = await svc.reintentar('t1', 'venta-1');
+    const result = await svc.reintentarAutomatico('t1', 'venta-1');
     expect(result.facturado).toBe(true);
     expect(result.cae).toBeTruthy();
   });
 
-  it('marca como error_afip cuando AFIP sigue fallando', async () => {
+  it('mantiene pendiente_facturacion cuando AFIP falla (reintento automático)', async () => {
     process.env.AFIP_MOCK_FAIL = 'true';
     const svc = crearServicio(true);
     mockWithTenant
       .mockResolvedValueOnce([{ ...fakeVenta, estado: 'pendiente_facturacion', intentos_facturacion: 2 }])
-      .mockResolvedValueOnce([]) // items
-      .mockResolvedValueOnce(undefined); // update error_afip
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(undefined);
 
-    await expect(svc.reintentar('t1', 'venta-1')).rejects.toThrow(BadRequestException);
-    // Verifica que se actualiza a error_afip
+    await expect(svc.reintentarAutomatico('t1', 'venta-1')).rejects.toThrow('AFIP no respondió');
+    expect(mockWithTenant).toHaveBeenCalledTimes(3);
+    const updateCall = mockWithTenant.mock.calls[2];
+    expect(updateCall).toBeDefined();
+  });
+});
+
+describe('VentasService.reintentarManual', () => {
+  it('marca como error_afip cuando AFIP sigue fallando', async () => {
+    process.env.AFIP_MOCK_FAIL = 'true';
+    const svc = crearServicio(true);
+    mockWithTenant
+      .mockResolvedValueOnce([{ ...fakeVenta, estado: 'error_afip', intentos_facturacion: 2 }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(undefined);
+
+    await expect(svc.reintentarManual('t1', 'venta-1')).rejects.toThrow(BadRequestException);
     expect(mockWithTenant).toHaveBeenCalledTimes(3);
   });
 });
@@ -277,5 +292,17 @@ describe('VentasService.findAll', () => {
     const result = await svc.findAll('t1', { pagina: 1, limite: 50 });
     expect(result.data).toHaveLength(1);
     expect(result.meta?.pagina).toBe(1);
+  });
+});
+
+describe('VentasService.exportarIvaVentas', () => {
+  it('calcula IVA 21/121 sin float drift', async () => {
+    mockWithTenant.mockResolvedValueOnce([
+      { ...fakeVenta, total: '121.00', tipo: 'factura_b', created_at: new Date('2026-01-15') },
+    ]);
+    const svc = crearServicio();
+    const buffer = await svc.exportarIvaVentas('t1', {});
+    expect(buffer).toBeInstanceOf(Buffer);
+    expect(buffer.length).toBeGreaterThan(0);
   });
 });

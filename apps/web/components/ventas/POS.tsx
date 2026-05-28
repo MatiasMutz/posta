@@ -1,6 +1,8 @@
 'use client';
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { calcularSubtotalItem, calcularTotalCarrito } from '@/lib/money';
+import { validarVentaPos, mensajeErrorVenta } from '@/lib/ventas-pos';
 import { ABtn, APrice, APill } from '@/components/ui';
 
 interface Producto {
@@ -35,6 +37,7 @@ interface POSProps {
   productos: Producto[];
   clientes: Cliente[];
   token: string;
+  buscarInicial?: string;
 }
 
 const ESTADO_INFO: Record<string, { label: string; tone: 'ok' | 'warn' | 'err' }> = {
@@ -45,8 +48,8 @@ const ESTADO_INFO: Record<string, { label: string; tone: 'ok' | 'warn' | 'err' }
   presupuesto: { label: 'Presupuesto', tone: 'ok' },
 };
 
-export function POS({ productos, clientes, token }: POSProps) {
-  const [buscar, setBuscar] = useState('');
+export function POS({ productos, clientes, token, buscarInicial = '' }: POSProps) {
+  const [buscar, setBuscar] = useState(buscarInicial);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [tipo, setTipo] = useState('factura_b');
   const [metodoPago, setMetodoPago] = useState('efectivo');
@@ -88,41 +91,41 @@ export function POS({ productos, clientes, token }: POSProps) {
     );
   }
 
-  const totalMoney = carrito.reduce(
-    (acc, i) => acc + parseFloat(i.producto.precio) * i.cantidad,
-    0,
+  const total = calcularTotalCarrito(
+    carrito.map((i) => ({ precio: i.producto.precio, cantidad: i.cantidad })),
   );
-  const total = totalMoney.toFixed(2);
 
-  // Cuenta corriente requiere cliente seleccionado
   const ctaCteError = metodoPago === 'cuenta_corriente' && !clienteId;
 
   async function confirmar() {
     if (carrito.length === 0) return;
-    if (ctaCteError) {
-      setError('Seleccioná un cliente para registrar una venta en cuenta corriente.');
+
+    const validacion = validarVentaPos({
+      tipo,
+      metodoPago,
+      clienteId,
+      items: carrito.map((i) => ({
+        productoId: i.producto.id,
+        descripcion: i.producto.nombre,
+        cantidad: i.cantidad,
+        precioUnitario: i.producto.precio,
+      })),
+    });
+
+    if (!validacion.ok) {
+      setError(mensajeErrorVenta(validacion));
       return;
     }
+
     setEnviando(true);
     setError('');
     try {
-      const data = await apiClient<ResultadoVenta>('/ventas', {
+      const res = await apiClient<{ data: ResultadoVenta }>('/ventas', {
         method: 'POST',
         token,
-        body: JSON.stringify({
-          tipo,
-          metodo_pago: metodoPago,
-          descuento: '0',
-          ...(clienteId ? { cliente_id: clienteId } : {}),
-          items: carrito.map((i) => ({
-            producto_id: i.producto.id,
-            descripcion: i.producto.nombre,
-            cantidad: i.cantidad,
-            precio_unitario: i.producto.precio,
-          })),
-        }),
+        body: JSON.stringify(validacion.data),
       });
-      setResultado(data);
+      setResultado(res.data);
       setCarrito([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrar la venta.');
@@ -215,7 +218,10 @@ export function POS({ productos, clientes, token }: POSProps) {
                 <li key={item.producto.id} className="flex items-center gap-2 px-3 py-2">
                   <div className="flex-1 min-w-0">
                     <p className="font-sans text-xs text-ink truncate">{item.producto.nombre}</p>
-                    <APrice value={(parseFloat(item.producto.precio) * item.cantidad).toFixed(2)} className="text-xs" />
+                    <APrice
+                      value={calcularSubtotalItem(item.producto.precio, item.cantidad)}
+                      className="text-xs"
+                    />
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => cambiarCantidad(item.producto.id, -1)} className="w-6 h-6 font-sans text-sm bg-paper border border-rule rounded-[2px] hover:bg-paper-warm">−</button>

@@ -25,10 +25,12 @@ supabase/.temp/
 
 # other
 .cursor/
-.claude/
+.claude/*
+!.claude/skills/
 tmp-test-import/
 
 # playwright
 playwright-report/
 test-results/
 apps/web/tests/e2e/.auth/
+*.tsbuildinfo

@@ -1,0 +1,4 @@
+nombre,precio,costo,stock
+Producto Valido E2E,1500,800,5
+Producto Error Precio,abc,800,3
+Producto Valido E2E B,2200,1100,2

@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { LIMITE_PAGINA_DEFAULT, parsePagina } from '@/lib/paginacion';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { TablaProductos } from '@/components/inventario/TablaProductos';
 import { BuscadorProductos } from '@/components/inventario/BuscadorProductos';
 import { ABtn, APaginacion } from '@/components/ui';
-import type { ApiResponse, Rol } from '@posta/shared-types';
+import type { ApiResponse } from '@posta/shared-types';
 
 interface Producto {
   id: string;
@@ -26,8 +26,8 @@ export default async function InventarioPage({
 }: {
   searchParams: Promise<{ solo_bajo_stock?: string; buscar?: string; pagina?: string }>;
 }) {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
   const params = await searchParams;
   const pagina = parsePagina(params.pagina);
@@ -45,7 +45,7 @@ export default async function InventarioPage({
   try {
     const result = await apiClient<ApiResponse<Producto[]>>(
       `/inventario/productos?${query}`,
-      { token: session.access_token },
+      { token: accessToken },
     );
     productos = result.data;
     total = result.meta?.total ?? productos.length;
@@ -57,7 +57,6 @@ export default async function InventarioPage({
     errorMensaje = err instanceof Error ? err.message : 'Error al cargar el inventario.';
   }
 
-  const rol = (session.user.app_metadata?.rol ?? 'vendedor') as Rol;
   const soloBajoStock = params.solo_bajo_stock === '1';
 
   return (
@@ -125,7 +124,7 @@ export default async function InventarioPage({
           className="bg-card rounded-[2px] border border-rule"
           style={{ boxShadow: 'var(--shadow-flat)' }}
         >
-          <TablaProductos productos={productos} rol={rol} token={session.access_token} />
+          <TablaProductos productos={productos} rol={rol} token={accessToken} />
           <Suspense fallback={null}>
             <APaginacion pagina={pagina} limite={LIMITE_PAGINA_DEFAULT} total={total} />
           </Suspense>

@@ -1,6 +1,6 @@
 # Arquitectura — Posta
 
-> El **cómo** técnico. Para el **qué/por qué** y el alcance, ver `PROJECT.md`. Las decisiones referenciadas (D-01 … D-12) están en `PROJECT.md` §6.
+> El **cómo** técnico. Para el **qué/por qué** y el alcance, ver `PROJECT.md`. Las decisiones referenciadas (D-01 … D-14) están en `PROJECT.md` §6.
 
 ---
 
@@ -14,10 +14,10 @@
                             │ HTTPS / REST (JWT)
 ┌───────────────────────────▼─────────────────────────────────┐
 │  Monolito modular — NestJS (TypeScript)                      │
-│  ┌─────────┬─────────┬──────────┬────────────┬────────────┐  │
-│  │ Auth /  │ Ventas  │ Inventario│ Tesorería  │ Importación│  │
-│  │ Tenants │ (POS)   │  Stock    │  Compras   │  (Excel)   │  │
-│  └─────────┴─────────┴──────────┴────────────┴────────────┘  │
+│  ┌──────────┬─────────┬───────────┬─────────────┐          │
+│  │ Auth /   │ Ventas  │ Inventario│ Importación │          │
+│  │ Tenants  │ (POS)   │ Stock     │ (Excel)     │          │
+│  └──────────┴─────────┴───────────┴─────────────┘          │
 │   capa de dominio  ·  capa de acceso a datos (tenant-aware)  │
 └───────┬───────────────────────┬──────────────────┬──────────┘
         │                       │                  │
@@ -42,11 +42,11 @@ Principios rectores:
 
 | Capa | Tecnología | Notas |
 |---|---|---|
-| Frontend | Next.js (App Router) + React + TypeScript | Mobile-first. Estado de servidor con React Query (o equivalente). Validación con Zod. |
+| Frontend | Next.js (App Router) + React + TypeScript | Mobile-first. Server Components + fetch por defecto; React Query en pantallas interactivas. Ver `docs/DATA-FETCHING.md`. |
 | UI / estilos | Tailwind CSS + tokens de `DESIGN_SYSTEM.md` | Los tokens del POC se traducen a variables/config de Tailwind. |
 | Backend | NestJS + TypeScript | Monolito modular. Un módulo Nest por dominio. |
-| Validación | Zod (o class-validator) | Mismos esquemas reutilizados front/back donde se pueda. |
-| ORM / acceso a datos | Prisma o Drizzle (decidir en el primer spike) | **Requisito innegociable:** debe permitir setear `SET LOCAL app.tenant_id` por transacción para que RLS funcione con pooling. Ver §5. |
+| Validación | **Zod** (`@posta/validation`, D-14) | Schemas compartidos front/back; errores API: `{ statusCode, mensaje, errores?: [{ campo, motivo }] }` |
+| ORM / acceso a datos | **Drizzle** (D-13) | `withTenant()` + `SET LOCAL` por transacción. Ver skill `rls-policy`. |
 | Base de datos | PostgreSQL (Supabase) | RLS forzado en todas las tablas con `tenant_id`. |
 | Auth | Supabase Auth | JWT; el `tenant_id` y el rol viajan como claims / se resuelven al inicio del request. |
 | Storage | Supabase Storage | Archivos Excel subidos para importación. |
@@ -69,30 +69,40 @@ posta/
 │   ├── PROJECT.md             # qué / por qué / alcance / decisiones
 │   ├── ARCHITECTURE.md        # este archivo
 │   ├── DESIGN_SYSTEM.md       # tokens, tipografía, componentes, navegación
-│   └── ROADMAP.md             # plan de fases
+│   ├── ROADMAP.md             # plan de fases
+│   ├── TESTING.md             # estrategia de tests
+│   ├── DATA-FETCHING.md       # RSC vs React Query vs POS
+│   └── AI-WORKFLOW.md         # Superpowers, MCPs, DoD
 ├── .claude/
 │   └── skills/                # skills de dominio propias (ver §9)
 ├── apps/
 │   ├── api/                   # NestJS (monolito modular)
+│   │   ├── drizzle/           # migraciones SQL (fuente de verdad)
 │   │   └── src/modules/
-│   │       ├── auth/          # + CLAUDE.md propio cuando se cree
-│   │       ├── tenants/
-│   │       ├── sales/         # POS, facturación, ctas. ctes. activas
-│   │       ├── inventory/
-│   │       ├── purchases/     # compras, proveedores, ctas. ctes. pasivas
-│   │       ├── treasury/      # caja, flujo de fondos
-│   │       ├── imports/       # motor Excel/CSV
-│   │       └── reports/       # exportaciones IVA, contador
-│   └── web/                   # Next.js
+│   │       ├── auth/          # JWT, registro, guards (+ CLAUDE.md)
+│   │       ├── tenants/       # tenant actual, invitaciones de equipo
+│   │       ├── inventario/    # productos, movimientos de stock
+│   │       ├── clientes/      # CRUD, saldo deudor (cta. cte. activa)
+│   │       ├── ventas/        # POS, historial, export IVA, AFIP mock
+│   │       ├── imports/       # motor Excel/CSV (BullMQ)
+│   │       └── afip/          # puerto FacturadorElectronico (+ CLAUDE.md)
+│   │   # Roadmap: compras, tesorería (aún no en apps/api/src/modules/)
+│   └── web/                   # Next.js App Router
+│       ├── app/               # rutas (ventas, clientes, inventario, …)
+│       ├── lib/               # api-client, paginacion, money (formato ARS)
+│       └── tests/e2e/         # Playwright (+ .auth multi-rol)
 ├── services/
-│   └── afip/                  # microservicio Python (FastAPI) — adaptador AFIP
+│   └── afip/                  # microservicio Python (producción; dev/CI usa mock en API)
 ├── packages/
-│   ├── shared-types/          # DTOs / contratos compartidos
-│   └── money/                 # utilidades de dinero (ver skill de dinero)
-└── infra/                     # config de despliegue (PaaS ahora; Terraform después)
+│   ├── shared-types/
+│   ├── validation/            # esquemas Zod compartidos
+│   └── money/
+├── infra/                     # Dockerfiles + docker-compose.prod.yml
+├── scripts/                   # CI, openapi-smoke, sync migraciones
+└── supabase/migrations/       # copia de drizzle/ para Supabase CLI
 ```
 
-`CLAUDE.md` por módulo se crea **cuando se crea el módulo**, no antes (si no, queda desactualizado). El raíz sí existe desde el día uno.
+`CLAUDE.md` por módulo vive junto al código (`apps/api/src/modules/<modulo>/`). Skills versionadas en `.claude/skills/<nombre>/SKILL.md`.
 
 ---
 
@@ -138,9 +148,9 @@ Reglas inviolables (las repite y detalla la skill de RLS):
 
 - El dominio define una **interfaz** (puerto), ej. `FacturadorElectronico` con métodos como `emitirComprobante(venta) → { cae, vencimientoCae, … }`.
 - Hay **dos implementaciones** detrás de esa interfaz:
-  - `FacturadorMock`: responde como AFIP pero sin red. Es la que corre en el MVP, dev y CI. Permite construir y testear todo el flujo de ventas hoy.
+  - `FacturadorMock`: responde como AFIP pero sin red. Es la que corre en dev y CI. Permite construir y testear todo el flujo de ventas antes de conectar AFIP real en producción.
   - `FacturadorAfipReal`: llama al microservicio Python (FastAPI) que encapsula WSAA (ticket de acceso, certificados `.crt`/`.key`) y WSFEV1 (autorización, CAE). Se enchufa cuando haya CUIT y certificados de homologación, **sin tocar el dominio de ventas**.
-- La **resiliencia** (D-07) es parte del contrato: ante timeout/caída de AFIP, la venta se persiste como `pendiente_facturacion` y se encola un reintento. Esto se modela y se testea ya en el MVP con el mock simulando caídas.
+- La **resiliencia** (D-07) es parte del contrato: ante timeout/caída de AFIP, la venta se persiste como `pendiente_facturacion` y se encola un reintento. Esto se modela y se testea desde el inicio con el mock simulando caídas.
 - El microservicio se diseña **stateless**, pensado para Lambda, consumido por el monolito vía HTTP. Mismo patrón servirá para ML/Shopify/Mercado Pago a futuro.
 
 ---
@@ -163,13 +173,13 @@ La misma infraestructura de colas y workers se reutiliza a futuro para webhooks 
 
 > Detalle accionable en la skill `add-endpoint`. Lineamientos:
 
-- REST con sustantivos en plural, anidados por recurso (`/sales`, `/inventory/products`, `/customers/:id/account`).
-- Versionado bajo `/api/v1`.
-- Validación de entrada con Zod/DTO en el borde; nunca confiar en el cliente.
-- Respuestas y errores con forma consistente (incluido el formato de error humanizado para importaciones).
-- Autenticación por JWT (Supabase); autorización por guard de rol + contexto de tenant en cada endpoint.
-- Paginación, filtrado y orden estandarizados para los listados densos (inventario, movimientos).
-- Documentación OpenAPI autogenerada por NestJS.
+- REST con sustantivos en plural (`/clientes`, `/inventario/productos`, `/ventas`).
+- Versionado `/api/v1`.
+- Validación Zod en el borde (`ZodValidationPipe`); errores de campo: `{ campo, motivo }`.
+- Respuestas: listados `{ data, meta }`; algunos recursos singleton `{ data }`; otros devuelven el row directo (unificar progresivamente).
+- Errores HTTP: `{ statusCode, mensaje, errores? }` vía `HttpExceptionFilter`.
+- JWT + `RolesGuard` + `withTenant` en cada handler de negocio.
+- OpenAPI en `/api/v1/docs`; decoradores en `apps/api/src/common/swagger/error-responses.ts`.
 
 ---
 

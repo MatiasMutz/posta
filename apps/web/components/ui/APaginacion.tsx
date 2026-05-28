@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { rangoPaginacion } from '@/lib/paginacion';
+import { ABtn } from './ABtn';
 
 interface APaginacionProps {
   pagina: number;
@@ -49,37 +50,30 @@ export function APaginacion({ pagina, limite, total }: APaginacionProps) {
       </p>
 
       <div className="flex items-center gap-2">
-        <button
+        <ABtn
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() => irAPagina(pagina - 1)}
           disabled={!hayAnterior}
           aria-label="Página anterior"
-          className={btnClase(!hayAnterior)}
         >
           Anterior
-        </button>
+        </ABtn>
         <span className="font-mono text-xs text-muted min-w-[4.5rem] text-center">
           {pagina} / {totalPaginas}
         </span>
-        <button
+        <ABtn
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() => irAPagina(pagina + 1)}
           disabled={!haySiguiente}
           aria-label="Página siguiente"
-          className={btnClase(!haySiguiente)}
         >
           Siguiente
-        </button>
+        </ABtn>
       </div>
     </nav>
   );
-}
-
-function btnClase(disabled: boolean) {
-  return [
-    'px-3 py-1.5 font-sans text-xs font-medium rounded-[2px] border transition-colors',
-    disabled
-      ? 'border-rule text-muted cursor-not-allowed opacity-50'
-      : 'border-rule text-ink bg-card hover:bg-paper-warm',
-  ].join(' ');
 }

@@ -1,14 +1,14 @@
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { LIMITE_PAGINA_DEFAULT, parsePagina } from '@/lib/paginacion';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { APrice, APill, APaginacion } from '@/components/ui';
 import { BtnReintentarAfip } from '@/components/ventas/BtnReintentarAfip';
 import { BtnExportarIva } from '@/components/ventas/BtnExportarIva';
-import type { ApiResponse, Rol } from '@posta/shared-types';
+import type { ApiResponse } from '@posta/shared-types';
 
 interface Venta {
   id: string;
@@ -62,10 +62,9 @@ export default async function HistorialVentasPage({
 }: {
   searchParams: Promise<{ pagina?: string }>;
 }) {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
-  const rol = (session.user.app_metadata?.rol ?? 'vendedor') as Rol;
   if (rol === 'vendedor') redirect('/ventas');
 
   const { pagina: paginaParam } = await searchParams;
@@ -78,7 +77,7 @@ export default async function HistorialVentasPage({
   try {
     const res = await apiClient<ApiResponse<Venta[]>>(
       `/ventas?pagina=${pagina}&limite=${LIMITE_PAGINA_DEFAULT}`,
-      { token: session.access_token },
+      { token: accessToken },
     );
     ventasList = res.data;
     total = res.meta?.total ?? ventasList.length;
@@ -88,8 +87,6 @@ export default async function HistorialVentasPage({
     }
     errorMensaje = err instanceof Error ? err.message : 'Error al cargar el historial.';
   }
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
   return (
     <div className="min-h-screen bg-paper pb-24 md:pb-8 md:pl-24">
@@ -106,7 +103,7 @@ export default async function HistorialVentasPage({
                 ← Ir al POS
               </Link>
             )}
-            <BtnExportarIva token={session.access_token} apiUrl={apiUrl} />
+            <BtnExportarIva token={accessToken} />
           </div>
         </div>
 
@@ -158,7 +155,7 @@ export default async function HistorialVentasPage({
                         {v.cae ? (
                           <span className="font-mono text-xs text-muted">{v.cae}</span>
                         ) : (v.estado === 'pendiente_facturacion' || v.estado === 'error_afip') && rol === 'dueno' ? (
-                          <BtnReintentarAfip ventaId={v.id} token={session.access_token} />
+                          <BtnReintentarAfip ventaId={v.id} token={accessToken} />
                         ) : '—'}
                       </td>
                     </tr>

@@ -15,8 +15,8 @@ Responsabilidades: gestión de productos y trazabilidad de stock.
 
 | Método | Path | Roles |
 |---|---|---|
-| GET | /inventario/productos | dueno, vendedor, contador |
-| GET | /inventario/productos/:id | dueno, vendedor, contador |
+| GET | /inventario/productos | dueno, vendedor, contador (sin costo salvo dueño) |
+| GET | /inventario/productos/:id | dueno, vendedor, contador (sin costo salvo dueño) |
 | POST | /inventario/productos | dueno |
 | PATCH | /inventario/productos/:id | dueno |
 | DELETE | /inventario/productos/:id | dueno |

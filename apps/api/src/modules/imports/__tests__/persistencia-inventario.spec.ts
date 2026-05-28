@@ -17,6 +17,7 @@ const producto = (overrides: Partial<{
   stock_actual: overrides.stock_actual ?? 0,
   stock_minimo: 0,
   activo: true,
+  created_by: null as string | null,
   created_at: new Date(),
   updated_at: new Date(),
 });

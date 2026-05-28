@@ -1,21 +1,20 @@
 import { redirect, notFound } from 'next/navigation';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { apiClient } from '@/lib/api-client';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { FormProducto } from '@/components/inventario/FormProducto';
 import type { CreateProductoDto } from '@posta/validation';
 
 export default async function EditarProductoPage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
-  const rol = session.user.app_metadata?.rol;
   if (rol !== 'dueno') redirect('/inventario');
 
   const { id } = await params;
   const { data: producto } = await apiClient<{ data: CreateProductoDto & { id: string } }>(
     `/inventario/productos/${id}`,
-    { token: session.access_token },
+    { token: accessToken },
   ).catch(() => ({ data: null }));
 
   if (!producto) notFound();
@@ -26,7 +25,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
       <div className="max-w-2xl mx-auto px-4 pt-8">
         <h1 className="font-serif text-2xl text-ink mb-6">Editar producto</h1>
         <FormProducto
-          token={session.access_token}
+          token={accessToken}
           productoInicial={producto}
         />
       </div>

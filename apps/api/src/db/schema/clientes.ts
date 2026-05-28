@@ -14,6 +14,7 @@ export const clientes = pgTable(
     direccion: text('direccion'),
     activo: boolean('activo').notNull().default(true),
     saldo_deudor: numeric('saldo_deudor', { precision: 14, scale: 2 }).notNull().default('0'),
+    created_by: uuid('created_by'),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

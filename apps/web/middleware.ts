@@ -1,5 +1,14 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { redirectPorRol } from '@/lib/auth';
+
+const protectedPaths = [
+  '/inventario',
+  '/ventas',
+  '/clientes',
+  '/importar',
+  '/configuracion',
+];
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -21,14 +30,20 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
+  const pathname = request.nextUrl.pathname;
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
-  // Rutas protegidas: redirigir a /login si no hay sesión
-  const protectedPaths = ['/inventario', '/caja', '/ventas'];
-  const isProtected = protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p));
-
-  if (isProtected && !session) {
+  if (isProtected && !user) {
     return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  if (user) {
+    const rol = user.app_metadata?.rol as string | undefined;
+    const redirectTo = redirectPorRol(pathname, rol);
+    if (redirectTo) {
+      return NextResponse.redirect(new URL(redirectTo, request.url));
+    }
   }
 
   return supabaseResponse;

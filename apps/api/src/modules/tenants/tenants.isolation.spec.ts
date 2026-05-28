@@ -81,7 +81,7 @@ describe.skipIf(skip)('Aislamiento RLS: tenants', () => {
     expect(rows.filter((r) => r.id === tenantAId || r.id === tenantBId)).toHaveLength(0);
   });
 
-  it('tenant A no puede insertar una membership con tenant_id del B', async () => {
+  it('tenant B no puede insertar una membership con tenant_id del A', async () => {
     await expect(
       withTenantCtx(tenantAId, (d) =>
         d.insert(usuariosTenant).values({
@@ -91,5 +91,29 @@ describe.skipIf(skip)('Aislamiento RLS: tenants', () => {
         }),
       ),
     ).rejects.toThrow();
+  });
+
+  it('tenant B no puede actualizar membership del tenant A', async () => {
+    const [membershipA] = await db.select().from(usuariosTenant)
+      .where(eq(usuariosTenant.tenant_id, tenantAId));
+    await withTenantCtx(tenantBId, (d) =>
+      d.update(usuariosTenant)
+        .set({ rol: 'contador' })
+        .where(eq(usuariosTenant.id, membershipA.id)),
+    );
+    const [unchanged] = await db.select().from(usuariosTenant)
+      .where(eq(usuariosTenant.id, membershipA.id));
+    expect(unchanged.rol).toBe('dueno');
+  });
+
+  it('tenant B no puede eliminar membership del tenant A', async () => {
+    const [membershipA] = await db.select().from(usuariosTenant)
+      .where(eq(usuariosTenant.tenant_id, tenantAId));
+    await withTenantCtx(tenantBId, (d) =>
+      d.delete(usuariosTenant).where(eq(usuariosTenant.id, membershipA.id)),
+    );
+    const stillThere = await db.select().from(usuariosTenant)
+      .where(eq(usuariosTenant.id, membershipA.id));
+    expect(stillThere).toHaveLength(1);
   });
 });

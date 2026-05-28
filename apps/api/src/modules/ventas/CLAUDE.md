@@ -6,7 +6,7 @@ Responsabilidades: POS (punto de venta), facturación AFIP (via adaptador), hist
 
 - **Dinero (skill money):** subtotales y total se calculan con `@posta/money` (bigint, sin float drift). Nunca `parseFloat` para aritmética; sí para parsear el result de Drizzle NUMERIC cuando sea solo display.
 - **Stock:** si `stock_actual < cantidad` solicitada, lanza `BadRequestException` descriptivo. No se permite vender en negativo. El descantar stock ocurre en la misma transacción que la venta (atómico).
-- **AFIP (skill afip-adapter):** el dominio llama a `FacturadorElectronico` (interfaz). Si falla → la venta queda `pendiente_facturacion` y se encola reintento en BullMQ (3 intentos exponenciales: 60s, 5min, 15min). Al agotar → `error_afip`.
+- **AFIP (skill afip-adapter):** el dominio llama a `FacturadorElectronico` (interfaz). Si falla → la venta queda `pendiente_facturacion` y se encola reintento en BullMQ (3 intentos exponential backoff: ~60s, ~120s, ~240s con delay base 60_000 ms). Al agotar → `error_afip`.
 - **Cta. Cte.:** si `metodo_pago = 'cuenta_corriente'`, se suma el total al `clientes.saldo_deudor` en la misma transacción. **Requiere `cliente_id`** en el body.
 - **tenant_id:** siempre de `request.user.tenantId`. Nunca del body.
 - **Roles:** vendedor puede crear ventas pero no ver historial ni exportar IVA.

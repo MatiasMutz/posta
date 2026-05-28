@@ -1,0 +1,61 @@
+import type { Rol } from '@posta/shared-types';
+
+/** Ruta de inicio según rol del usuario autenticado. */
+export function rutaInicioPorRol(rol: string | undefined): string {
+  switch (rol as Rol | undefined) {
+    case 'vendedor':
+      return '/ventas';
+    case 'contador':
+      return '/ventas/historial';
+    default:
+      return '/inventario';
+  }
+}
+
+function esRutaSoloDueno(pathname: string): boolean {
+  return pathname.startsWith('/importar') || pathname.startsWith('/configuracion');
+}
+
+function esRutaEscrituraClientes(pathname: string): boolean {
+  return pathname === '/clientes/nuevo' || pathname.endsWith('/editar');
+}
+
+function esRutaEscrituraInventario(pathname: string): boolean {
+  return pathname === '/inventario/nuevo' || pathname.includes('/editar');
+}
+
+function esRutaMovimientosInventario(pathname: string): boolean {
+  return pathname.includes('/movimientos');
+}
+
+/** Si la ruta no es accesible para el rol, devuelve la URL de redirect; si no, null. */
+export function redirectPorRol(pathname: string, rol: string | undefined): string | null {
+  const r = rol as Rol | undefined;
+
+  if (esRutaSoloDueno(pathname) && r !== 'dueno') {
+    return rutaInicioPorRol(r);
+  }
+
+  if (pathname.startsWith('/clientes')) {
+    if (r === 'vendedor') return '/ventas';
+    if (r !== 'dueno' && esRutaEscrituraClientes(pathname)) return '/clientes';
+  }
+
+  if (pathname.startsWith('/inventario')) {
+    if (r === 'contador') return '/ventas/historial';
+    if (r === 'vendedor' && (esRutaMovimientosInventario(pathname) || esRutaEscrituraInventario(pathname))) {
+      return '/inventario';
+    }
+    if (r !== 'dueno' && esRutaEscrituraInventario(pathname)) return '/inventario';
+  }
+
+  if (pathname.startsWith('/ventas/historial') && r === 'vendedor') {
+    return '/ventas';
+  }
+
+  if (pathname === '/ventas' && r === 'contador') {
+    return '/ventas/historial';
+  }
+
+  return null;
+}

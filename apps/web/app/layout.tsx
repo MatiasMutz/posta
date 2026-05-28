@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Instrument_Serif, Geist, JetBrains_Mono } from 'next/font/google';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 import './globals.css';
 
 const instrumentSerif = Instrument_Serif({
@@ -26,7 +27,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${instrumentSerif.variable} ${geist.variable} ${jetbrainsMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

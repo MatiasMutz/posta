@@ -24,6 +24,8 @@ SUPABASE_JWT_SECRET=${JWT_SECRET}
 PORT=3001
 CORS_ORIGIN=http://localhost:3000
 REDIS_URL=${REDIS_URL}
+WEB_URL=http://localhost:3000
+THROTTLE_ENABLED=0
 EOF
 
 cat > apps/web/.env.local <<EOF

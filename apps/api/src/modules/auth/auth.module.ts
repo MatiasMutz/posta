@@ -1,9 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthMembershipService } from './auth-membership.service';
+import { JwtGuard } from './guards/jwt.guard';
 import { db } from '../../db';
 
+@Global()
 @Module({
   controllers: [AuthController],
   providers: [
@@ -22,7 +25,9 @@ import { db } from '../../db';
         new AuthService(supabaseAdmin, db),
       inject: ['SUPABASE_ADMIN'],
     },
+    AuthMembershipService,
+    JwtGuard,
   ],
-  exports: ['SUPABASE_ADMIN'],
+  exports: ['SUPABASE_ADMIN', AuthMembershipService, JwtGuard],
 })
 export class AuthModule {}

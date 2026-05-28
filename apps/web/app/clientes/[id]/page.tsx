@@ -1,12 +1,13 @@
 import { redirect, notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { LIMITE_PAGINA_DEFAULT, parsePagina } from '@/lib/paginacion';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { APrice, APill, APaginacion } from '@/components/ui';
-import type { ApiResponse, Rol } from '@posta/shared-types';
+import { esPositivo } from '@/lib/money';
+import type { ApiResponse } from '@posta/shared-types';
 
 interface Cliente {
   id: string;
@@ -47,17 +48,16 @@ export default async function ClienteDetallePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ pagina?: string }>;
 }) {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
-  const rol = (session.user.app_metadata?.rol ?? 'vendedor') as Rol;
   const { id } = await params;
   const { pagina: paginaParam } = await searchParams;
   const pagina = parsePagina(paginaParam);
 
   let cliente: Cliente;
   try {
-    const res = await apiClient<{ data: Cliente }>(`/clientes/${id}`, { token: session.access_token });
+    const res = await apiClient<{ data: Cliente }>(`/clientes/${id}`, { token: accessToken });
     cliente = res.data;
   } catch (err) {
     if (err instanceof ApiError && err.statusCode === 401) redirect(`/login?error=${encodeURIComponent(err.message)}`);
@@ -66,15 +66,19 @@ export default async function ClienteDetallePage({
 
   let ventas: Venta[] = [];
   let totalVentas = 0;
+  let errorHistorial: string | null = null;
   try {
     const res = await apiClient<ApiResponse<Venta[]>>(
       `/ventas?cliente_id=${id}&pagina=${pagina}&limite=${LIMITE_PAGINA_DEFAULT}`,
-      { token: session.access_token },
+      { token: accessToken },
     );
     ventas = res.data;
     totalVentas = res.meta?.total ?? ventas.length;
-  } catch {
-    // No bloquear la página si el historial falla
+  } catch (err) {
+    if (err instanceof ApiError && err.statusCode === 401) {
+      redirect(`/login?error=${encodeURIComponent(err.message)}`);
+    }
+    errorHistorial = err instanceof Error ? err.message : 'Error al cargar el historial de compras.';
   }
 
   return (
@@ -96,10 +100,10 @@ export default async function ClienteDetallePage({
           </div>
           <div className="text-right">
             <p className="font-mono text-xs text-muted mb-0.5">Saldo deudor</p>
-            {parseFloat(cliente.saldo_deudor) > 0 ? (
-              <APrice value={cliente.saldo_deudor} className="text-xl text-err" />
+            {esPositivo(cliente.saldo_deudor) ? (
+              <APrice value={cliente.saldo_deudor} className="text-xl text-neg" />
             ) : (
-              <span className="font-mono text-xl text-ok">$0</span>
+              <span className="font-mono text-xl text-pos">$0</span>
             )}
           </div>
         </div>
@@ -138,6 +142,12 @@ export default async function ClienteDetallePage({
               </Link>
             )}
           </div>
+
+          {errorHistorial && (
+            <div className="bg-err-soft border border-err rounded-[2px] px-4 py-3 mb-3">
+              <p className="font-sans text-sm text-err">{errorHistorial}</p>
+            </div>
+          )}
 
           <div className="bg-card border border-rule rounded-[2px]" style={{ boxShadow: 'var(--shadow-flat)' }}>
             {ventas.length === 0 ? (

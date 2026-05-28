@@ -40,6 +40,14 @@ async function crearProducto(
 
   await page.getByRole('button', { name: 'Crear producto' }).click();
   await page.waitForURL('/inventario', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'Inventario' })).toBeVisible();
+
+  // Con muchos productos E2E acumulados el nuevo ítem puede quedar fuera de la página 1.
+  const buscador = page.locator('input[placeholder="Buscar producto..."]');
+  await buscador.waitFor({ state: 'visible', timeout: 15_000 });
+  await buscador.fill(opts.nombre);
+  await page.getByRole('button', { name: 'Buscar' }).click();
+  await page.waitForURL(/buscar=/);
 }
 
 test.describe('Inventario — gestión de productos', () => {
@@ -98,6 +106,9 @@ test.describe('Inventario — gestión de productos', () => {
     await page.fill('input[placeholder="Ej: Coca Cola 500ml"]', nuevoNombre);
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(page.getByRole('heading', { name: 'Inventario' })).toBeVisible({ timeout: 30_000 });
+    await page.fill('input[placeholder="Buscar producto..."]', nuevoNombre);
+    await page.getByRole('button', { name: 'Buscar' }).click();
+    await page.waitForURL(/buscar=/);
     await expect(page.getByText(nuevoNombre)).toBeVisible();
   });
 

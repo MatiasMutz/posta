@@ -1,13 +1,12 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { FormProducto } from '@/components/inventario/FormProducto';
 
 export default async function NuevoProductoPage() {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
-  const rol = session.user.app_metadata?.rol;
   if (rol !== 'dueno') redirect('/inventario');
 
   return (
@@ -15,7 +14,7 @@ export default async function NuevoProductoPage() {
       <NavFlotante />
       <div className="max-w-2xl mx-auto px-4 pt-8">
         <h1 className="font-serif text-2xl text-ink mb-6">Nuevo producto</h1>
-        <FormProducto token={session.access_token} />
+        <FormProducto token={accessToken} />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fromString, fromCents, add, subtract, multiply, toNumericString, ZERO } from './index';
+import { fromString, fromCents, add, subtract, multiply, multiplyRatio, toNumericString, ZERO } from './index';
 
 describe('Money', () => {
   it('construye desde string NUMERIC', () => {
@@ -34,5 +34,9 @@ describe('Money', () => {
   it('nunca usa float internamente', () => {
     // 0.1 + 0.2 en float = 0.30000000000000004, en Money = 0.30
     expect(toNumericString(add(fromString('0.10'), fromString('0.20')))).toBe('0.30');
+  });
+
+  it('calcula IVA incluido 21/121 sin float', () => {
+    expect(toNumericString(multiplyRatio(fromString('121.00'), 21n, 121n))).toBe('21.00');
   });
 });

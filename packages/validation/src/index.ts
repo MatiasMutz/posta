@@ -5,6 +5,7 @@
 
 export * from './common';
 export * from './auth';
+export * from './tenants';
 export * from './inventario';
 export * from './clientes';
 export * from './imports';

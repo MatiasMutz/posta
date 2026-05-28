@@ -4,8 +4,8 @@
 
 | Herramienta | Versión mínima | Instalación |
 |---|---|---|
-| Node.js | 20+ | [nodejs.org](https://nodejs.org) |
-| pnpm | 9+ | `npm i -g pnpm` |
+| Node.js | 22+ | [nodejs.org](https://nodejs.org) |
+| pnpm | 11+ | `npm i -g pnpm` |
 | Redis | 7+ | `brew install redis` o `docker run -p 6379:6379 redis` |
 | Cuenta Supabase | — | [supabase.com](https://supabase.com) |
 
@@ -15,7 +15,7 @@
 
 ```bash
 git clone <repo>
-cd "Hub Gestion"
+cd posta
 pnpm install
 ```
 
@@ -57,16 +57,30 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 
 ### Migraciones de base de datos
 
-Ejecutá cada archivo en orden en el **SQL Editor de Supabase**:
+Fuente de verdad: `apps/api/drizzle/`. Copia en `supabase/migrations/` vía `./scripts/ci/sync-supabase-migrations.sh`.
+
+```bash
+# Local (recomendado)
+pnpm db:migrate
+
+# O manualmente en SQL Editor de Supabase, en orden:
+# 0001_tenants … 0008_auditoria_clientes
+```
+
+Migraciones actuales:
 
 ```
-apps/api/drizzle/0001_tenants.sql
-apps/api/drizzle/0002_inventario.sql
-apps/api/drizzle/0003_clientes_imports.sql
-apps/api/drizzle/0004_ventas.sql
+0001_tenants.sql
+0002_inventario.sql
+0003_clientes_imports.sql
+0004_ventas.sql
+0005_storage_imports.sql
+0006_rls_policies_explicit.sql
+0007_invitaciones.sql
+0008_auditoria_clientes.sql
 ```
 
-> El archivo `0003` incluye instrucciones comentadas para crear el bucket `imports` en Supabase Storage — necesario para el motor de importación Excel.
+Verificar alineación: `pnpm --filter api db:check`
 
 ---
 
@@ -101,58 +115,61 @@ pnpm test
 # Solo la API
 cd apps/api && pnpm test
 
-# Solo el web (componentes UI)
+# Solo el web (lib + utilidades)
 cd apps/web && pnpm test
+```
 
+Cobertura web: `api-client`, validación POS (`ventas-pos`), schemas de forms, `money`, `paginacion`, `APrice`. Ver `docs/TESTING.md`.
+
+```bash
 # Watch mode en la API
 cd apps/api && pnpm test:watch
 ```
 
 ### Integración / Aislamiento RLS (requieren DB)
 
-Estos tests verifican que el aislamiento entre tenants funciona a nivel base de datos. Necesitás `DATABASE_URL` apuntando a la **Direct Connection** (puerto 5432).
+Verifican aislamiento entre tenants y conectividad Redis. Necesitás `DATABASE_URL` (Direct Connection, puerto 5432) y `REDIS_URL`.
 
 ```bash
-cd apps/api
-
-# Tenants
+# Desde la raíz del monorepo
 pnpm test:integration
 
-# Inventario
+# Solo un módulo (desde apps/api)
+pnpm test:integration:tenants
 pnpm test:integration:inventario
-
-# Ventas (requiere migración 0004 aplicada)
-npx vitest run src/modules/ventas/ventas.isolation.spec.ts
 ```
 
 ### End-to-end con Playwright
 
-Los E2E levantan el web y la API automáticamente. Necesitás:
-- Supabase corriendo y migraciones aplicadas
+Los E2E levantan web (`:3010`) y API (`:3002`) automáticamente — stack aislado del dev en `:3000`/`:3001`. Necesitás:
+
+- Supabase local + migraciones
 - Redis corriendo
-- Un usuario de prueba creado (ver abajo)
+- Variables de entorno generadas: `./scripts/ci/write-e2e-env.sh`
 
 ```bash
-# Crear usuario E2E (solo la primera vez)
-curl -X POST http://localhost:3001/api/v1/auth/registro \
-  -H "Content-Type: application/json" \
-  -d '{"email":"e2e@posta-test.com","password":"password123456","nombreTenant":"Tenant E2E"}'
+# Una vez: stack local listo
+supabase start
+./scripts/ci/write-e2e-env.sh
+redis-server   # si no está corriendo
 
-# Correr los E2E
-cd apps/web
-E2E_EMAIL=e2e@posta-test.com E2E_PASSWORD=password123456 pnpm test:e2e
+# Correr E2E (desde la raíz)
+pnpm test:e2e
 
 # Ver el reporte HTML
-pnpm exec playwright show-report
+cd apps/web && pnpm exec playwright show-report
 ```
 
-Desde la raíz del monorepo:
+Tras `playwright test` puede haber ~15–20s sin tests visibles: Playwright compila Next y arranca la API.
+
+**Si se cuelga ~2 minutos sin output:** suele ser un proceso colgado en `:3010` o `:3002` (típico tras Ctrl+C). El preflight lo detecta; manualmente:
 
 ```bash
+for p in 3010 3002; do lsof -tiTCP:$p -sTCP:LISTEN | xargs kill -9 2>/dev/null; done
 pnpm test:e2e
 ```
 
-> Los E2E corren en Chrome y mobile (iPhone 13). Si ya tenés el web y la API corriendo localmente, Playwright los reutiliza (`reuseExistingServer`).
+> Los E2E corren en Chrome y mobile (iPhone 13). En local, si `:3010`/`:3002` ya responden, Playwright los reutiliza.
 
 ---
 

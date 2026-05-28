@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
+import { apiClientBlob } from '@/lib/api-client';
+import { ABtn } from '@/components/ui';
 
 interface BtnExportarIvaProps {
   token: string;
-  apiUrl: string;
 }
 
-export function BtnExportarIva({ token, apiUrl }: BtnExportarIvaProps) {
+export function BtnExportarIva({ token }: BtnExportarIvaProps) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
 
@@ -14,11 +15,7 @@ export function BtnExportarIva({ token, apiUrl }: BtnExportarIvaProps) {
     setCargando(true);
     setError('');
     try {
-      const res = await fetch(`${apiUrl}/api/v1/ventas/iva-ventas`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Error al generar el archivo.');
-      const blob = await res.blob();
+      const blob = await apiClientBlob('/ventas/iva-ventas', { token });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -34,13 +31,15 @@ export function BtnExportarIva({ token, apiUrl }: BtnExportarIvaProps) {
 
   return (
     <div>
-      <button
+      <ABtn
+        variant="ghost"
+        size="sm"
         onClick={handleExportar}
         disabled={cargando}
-        className="font-sans text-xs text-muted hover:text-accent transition-colors disabled:opacity-50"
+        className="text-muted hover:text-accent px-0"
       >
         {cargando ? 'Generando...' : '↓ Exportar IVA Ventas (.xlsx)'}
-      </button>
+      </ABtn>
       {error && <p className="font-sans text-xs text-err mt-1">{error}</p>}
     </div>
   );

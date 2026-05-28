@@ -16,6 +16,7 @@ import { CLIENTES_CAMPOS } from './profiles/clientes.profile';
 import type { CampoDefinicion } from './profiles/inventario.profile';
 import { guardarFilasInventario } from './persistencia-inventario';
 import { guardarFilasClientes } from './persistencia-clientes';
+import { assertStoragePathDelTenant } from './storage-path';
 
 export const IMPORTS_QUEUE = 'imports';
 const IMPORTS_BUCKET = 'imports';
@@ -82,7 +83,8 @@ export class ImportsService implements OnModuleInit {
   }
 
   async analizar(tenantId: string, dto: AnalizarImportDto) {
-    const buffer = await this.descargarArchivo(dto.storagePath);
+    assertStoragePathDelTenant(tenantId, dto.storagePath);
+    const buffer = await this.descargarArchivo(tenantId, dto.storagePath);
     const headers = this.extraerHeaders(buffer, dto.storagePath);
     const sugerencias = mapearColumnas(headers, dto.tipo);
     const camposTarget = camposDisponibles(dto.tipo);
@@ -90,6 +92,7 @@ export class ImportsService implements OnModuleInit {
   }
 
   async crear(tenantId: string, userId: string, dto: CrearImportDto): Promise<{ jobId: string }> {
+    assertStoragePathDelTenant(tenantId, dto.storagePath);
     const [job] = await withTenant(tenantId, async (tx) =>
       tx.insert(importJobs)
         .values({
@@ -173,7 +176,8 @@ export class ImportsService implements OnModuleInit {
 
   // ── Helpers internos ─────────────────────────────────────────
 
-  async descargarArchivo(storagePath: string): Promise<Buffer> {
+  async descargarArchivo(tenantId: string, storagePath: string): Promise<Buffer> {
+    assertStoragePathDelTenant(tenantId, storagePath);
     const { data, error } = await this.supabase.storage.from(IMPORTS_BUCKET).download(storagePath);
     if (error || !data) throw new BadRequestException('No se pudo leer el archivo de Storage.');
     return Buffer.from(await data.arrayBuffer());

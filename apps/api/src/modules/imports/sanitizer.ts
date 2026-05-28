@@ -100,6 +100,7 @@ export function sanitizarCuit(v: unknown): string | null {
  */
 export function validarMontoPositivo(v: string | null): string | null {
   if (v === null) return 'El valor es requerido';
+  // parseFloat solo para validar texto de Excel antes de persistir como string NUMERIC (skill money).
   if (isNaN(parseFloat(v)) || parseFloat(v) < 0) return 'Debe ser un número mayor o igual a 0';
   return null;
 }

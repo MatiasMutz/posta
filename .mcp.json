@@ -4,5 +4,39 @@
       "type": "http",
       "url": "https://mcp.supabase.com"
     }
+  },
+  "_comment_templates": {
+    "context7": {
+      "description": "Docs actualizadas de librerías — descomentar y configurar",
+      "example": {
+        "plugin-context7-plugin-context7": {
+          "type": "stdio",
+          "command": "npx",
+          "args": ["-y", "@upstash/context7-mcp"]
+        }
+      }
+    },
+    "playwright": {
+      "description": "Navegador E2E — usar solo cuando haga falta UI; consume tokens",
+      "example": {
+        "cursor-ide-browser": {
+          "type": "builtin",
+          "note": "Ya provisto por Cursor cuando está habilitado"
+        }
+      }
+    },
+    "github": {
+      "description": "PRs, issues, CI — requiere token",
+      "example": {
+        "github": {
+          "type": "stdio",
+          "command": "npx",
+          "args": ["-y", "@modelcontextprotocol/server-github"],
+          "env": {
+            "GITHUB_PERSONAL_ACCESS_TOKEN": "<token>"
+          }
+        }
+      }
+    }
   }
 }

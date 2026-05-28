@@ -1,13 +1,13 @@
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { LIMITE_PAGINA_DEFAULT, parsePagina } from '@/lib/paginacion';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { FormMovimiento } from '@/components/inventario/FormMovimiento';
 import { APill, APaginacion } from '@/components/ui';
-import type { ApiResponse, Rol } from '@posta/shared-types';
+import type { ApiResponse } from '@posta/shared-types';
 
 interface Movimiento {
   id: string;
@@ -56,10 +56,9 @@ export default async function MovimientosPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ pagina?: string }>;
 }) {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
-  const rol = (session.user.app_metadata?.rol ?? 'vendedor') as Rol;
   if (rol === 'vendedor') redirect('/inventario');
 
   const { id } = await params;
@@ -70,7 +69,7 @@ export default async function MovimientosPage({
   try {
     const res = await apiClient<{ data: Producto }>(
       `/inventario/productos/${id}`,
-      { token: session.access_token },
+      { token: accessToken },
     );
     producto = res.data;
   } catch (err) {
@@ -85,7 +84,7 @@ export default async function MovimientosPage({
   try {
     const res = await apiClient<ApiResponse<Movimiento[]>>(
       `/inventario/productos/${id}/movimientos?pagina=${pagina}&limite=${LIMITE_PAGINA_DEFAULT}`,
-      { token: session.access_token },
+      { token: accessToken },
     );
     movimientos = res.data;
     totalMovimientos = res.meta?.total ?? movimientos.length;
@@ -230,7 +229,7 @@ export default async function MovimientosPage({
                 className="bg-card border border-rule rounded-[2px] p-4"
                 style={{ boxShadow: 'var(--shadow-flat)' }}
               >
-                <FormMovimiento productoId={id} token={session.access_token} />
+                <FormMovimiento productoId={id} token={accessToken} />
               </div>
             </section>
           )}

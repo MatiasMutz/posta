@@ -1,14 +1,13 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { PollingEstado } from '@/components/importar/PollingEstado';
 
 export default async function ImportarJobPage({ params }: { params: Promise<{ jobId: string }> }) {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
-  const rol = session.user.app_metadata?.rol;
   if (rol !== 'dueno') redirect('/inventario');
 
   const { jobId } = await params;
@@ -28,7 +27,7 @@ export default async function ImportarJobPage({ params }: { params: Promise<{ jo
 
         <h1 className="font-serif text-2xl text-ink mb-6">Estado de la importación</h1>
 
-        <PollingEstado jobId={jobId} token={session.access_token} />
+        <PollingEstado jobId={jobId} token={accessToken} />
       </div>
     </div>
   );

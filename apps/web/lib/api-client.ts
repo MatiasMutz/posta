@@ -1,15 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { ApiError, type ApiErrorResponse, type CampoError } from '@posta/shared-types';
 
-export class ApiError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    message: string,
-    public readonly errores?: Array<{ campo: string; motivo: string }>,
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
+export { ApiError };
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export class NetworkError extends Error {
   constructor() {
@@ -19,6 +12,30 @@ export class NetworkError extends Error {
     );
     this.name = 'NetworkError';
   }
+}
+
+function parseErrorBody(body: Record<string, unknown>): {
+  mensaje: string;
+  errores?: CampoError[];
+} {
+  const mensaje =
+    (typeof body.mensaje === 'string' ? body.mensaje : undefined) ??
+    (typeof body.message === 'string' ? body.message : undefined) ??
+    'Error inesperado';
+
+  const rawErrores = body.errores;
+  if (!Array.isArray(rawErrores)) {
+    return { mensaje };
+  }
+
+  const errores = rawErrores
+    .filter((e): e is Record<string, unknown> => typeof e === 'object' && e !== null)
+    .map((e) => ({
+      campo: String(e.campo ?? e.path ?? 'general'),
+      motivo: String(e.motivo ?? e.mensaje ?? e.message ?? 'Inválido'),
+    }));
+
+  return errores.length > 0 ? { mensaje, errores } : { mensaje };
 }
 
 export async function apiClient<T>(
@@ -45,27 +62,56 @@ export async function apiClient<T>(
     res = await fetch(`${API_URL}/api/v1${path}`, {
       ...fetchOptions,
       headers,
+      cache: 'no-store',
     });
   } catch {
     throw new NetworkError();
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as {
-      mensaje?: string;
-      message?: string; // NestJS usa 'message' por defecto; nuestro filtro lo normaliza a 'mensaje'
-      errores?: Array<{ campo: string; motivo: string }>;
-    };
-
-    // 'mensaje' viene del HttpExceptionFilter; 'message' es el fallback de NestJS sin filtro
-    const mensaje = body.mensaje ?? body.message ?? mensajeDeEstatus(res.status);
-    throw new ApiError(res.status, mensaje, body.errores);
+    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const { mensaje, errores } = parseErrorBody(body);
+    throw new ApiError(res.status, mensajeDeEstatus(res.status, mensaje), errores);
   }
 
   return res.json() as Promise<T>;
 }
 
-function mensajeDeEstatus(status: number): string {
+export async function apiClientBlob(
+  path: string,
+  options: RequestInit & { token?: string } = {},
+): Promise<Blob> {
+  const { token, ...fetchOptions } = options;
+
+  const headers: Record<string, string> = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(fetchOptions.headers as Record<string, string> | undefined),
+  };
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/v1${path}`, {
+      ...fetchOptions,
+      headers,
+      cache: 'no-store',
+    });
+  } catch {
+    throw new NetworkError();
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const { mensaje, errores } = parseErrorBody(body);
+    throw new ApiError(res.status, mensajeDeEstatus(res.status, mensaje), errores);
+  }
+
+  return res.blob();
+}
+
+function mensajeDeEstatus(status: number, mensajeApi?: string): string {
+  if (mensajeApi && mensajeApi !== 'Error inesperado') {
+    return mensajeApi;
+  }
   switch (status) {
     case 400: return 'Los datos enviados son inválidos.';
     case 401: return 'Sesión inválida o expirada. Iniciá sesión de nuevo.';
@@ -76,4 +122,9 @@ function mensajeDeEstatus(status: number): string {
     case 500: return 'Error interno del servidor. Intentá de nuevo en unos minutos.';
     default:  return `Error inesperado (código ${status}).`;
   }
+}
+
+/** Útil en tests: normaliza un body de error como lo haría el cliente HTTP. */
+export function parseApiErrorResponse(body: ApiErrorResponse): ApiError {
+  return new ApiError(body.statusCode, body.mensaje, body.errores);
 }

@@ -12,13 +12,26 @@ export const ItemVentaSchema = z.object({
   precio_unitario: MontoSchema,
 });
 
-export const CreateVentaSchema = z.object({
-  cliente_id: z.string().uuid().optional(),
-  tipo: TipoComprobanteSchema.default('factura_b'),
-  metodo_pago: MetodoPagoSchema.default('efectivo'),
-  items: z.array(ItemVentaSchema).min(1, 'La venta debe tener al menos un ítem'),
-  descuento: MontoSchema.optional().default('0'),
-  observaciones: z.string().max(500).optional(),
+export const CreateVentaSchema = z
+  .object({
+    cliente_id: z.string().uuid().optional(),
+    tipo: TipoComprobanteSchema.default('factura_b'),
+    metodo_pago: MetodoPagoSchema.default('efectivo'),
+    items: z.array(ItemVentaSchema).min(1, 'La venta debe tener al menos un ítem'),
+    descuento: MontoSchema.optional().default('0'),
+    observaciones: z.string().max(500).optional(),
+  })
+  .refine(
+    (data) => data.metodo_pago !== 'cuenta_corriente' || !!data.cliente_id,
+    {
+      message: 'Seleccioná un cliente para registrar una venta en cuenta corriente.',
+      path: ['cliente_id'],
+    },
+  );
+
+export const IvaVentasQuerySchema = z.object({
+  desde: z.string().optional(),
+  hasta: z.string().optional(),
 });
 
 export const ListVentasQuerySchema = PaginacionSchema.extend({
@@ -34,3 +47,4 @@ export type EstadoVenta = z.infer<typeof EstadoVentaSchema>;
 export type ItemVentaDto = z.infer<typeof ItemVentaSchema>;
 export type CreateVentaDto = z.infer<typeof CreateVentaSchema>;
 export type ListVentasQuery = z.infer<typeof ListVentasQuerySchema>;
+export type IvaVentasQuery = z.infer<typeof IvaVentasQuerySchema>;

@@ -18,7 +18,8 @@ describe.skipIf(skip)('Aislamiento RLS: inventario', () => {
 
   let tenantAId: string;
   let tenantBId: string;
-  let _prodAId: string;
+  let prodAId: string;
+  let movimientoAId: string;
 
   async function withCtx<T>(tenantId: string, cb: (tx: typeof db) => Promise<T>): Promise<T> {
     return db!.transaction(async (tx) => {
@@ -53,7 +54,21 @@ describe.skipIf(skip)('Aislamiento RLS: inventario', () => {
         precio: '200.00',
       })
       .returning();
-    _prodAId = prod.id;
+    prodAId = prod.id;
+
+    const [mov] = await db!
+      .insert(schema.movimientosStock)
+      .values({
+        tenant_id: tenantAId,
+        producto_id: prodAId,
+        tipo: 'entrada',
+        cantidad: 10,
+        stock_anterior: 0,
+        stock_posterior: 10,
+        created_by: '00000000-0000-0000-0000-000000000001',
+      })
+      .returning();
+    movimientoAId = mov.id;
   });
 
   afterAll(async () => {
@@ -95,5 +110,68 @@ describe.skipIf(skip)('Aislamiento RLS: inventario', () => {
       return tx.select().from(schema.productos);
     });
     expect(rows.filter((r) => r.tenant_id === tenantAId)).toHaveLength(0);
+  });
+
+  it('tenant B no puede leer movimientos_stock del tenant A', async () => {
+    const rows = await withCtx(tenantBId, (d) =>
+      d!.select().from(schema.movimientosStock).where(eq(schema.movimientosStock.id, movimientoAId)),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it('tenant B no puede insertar un movimiento con tenant_id del A', async () => {
+    await expect(
+      withCtx(tenantBId, (d) =>
+        d!.insert(schema.movimientosStock).values({
+          tenant_id: tenantAId,
+          producto_id: prodAId,
+          tipo: 'entrada',
+          cantidad: 1,
+          stock_anterior: 0,
+          stock_posterior: 1,
+          created_by: '00000000-0000-0000-0000-000000000002',
+        }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('sin contexto de tenant, movimientos_stock devuelven 0 filas (fail-safe)', async () => {
+    const rows = await db!.transaction(async (tx) => {
+      await tx.execute(sql.raw('SET LOCAL ROLE authenticated'));
+      return tx.select().from(schema.movimientosStock);
+    });
+    expect(rows.filter((m) => m.id === movimientoAId)).toHaveLength(0);
+  });
+
+  it('tenant B no puede actualizar productos del tenant A', async () => {
+    await withCtx(tenantBId, (d) =>
+      d!.update(schema.productos)
+        .set({ nombre: 'Hackeado' })
+        .where(eq(schema.productos.id, prodAId)),
+    );
+    const [row] = await withCtx(tenantAId, (d) =>
+      d!.select().from(schema.productos).where(eq(schema.productos.id, prodAId)),
+    );
+    expect(row.nombre).toBe('Producto A');
+  });
+
+  it('tenant B no puede eliminar productos del tenant A', async () => {
+    await withCtx(tenantBId, (d) =>
+      d!.delete(schema.productos).where(eq(schema.productos.id, prodAId)),
+    );
+    const [row] = await withCtx(tenantAId, (d) =>
+      d!.select().from(schema.productos).where(eq(schema.productos.id, prodAId)),
+    );
+    expect(row).toBeDefined();
+  });
+
+  it('tenant B no puede eliminar movimientos_stock del tenant A', async () => {
+    await withCtx(tenantBId, (d) =>
+      d!.delete(schema.movimientosStock).where(eq(schema.movimientosStock.id, movimientoAId)),
+    );
+    const [row] = await withCtx(tenantAId, (d) =>
+      d!.select().from(schema.movimientosStock).where(eq(schema.movimientosStock.id, movimientoAId)),
+    );
+    expect(row).toBeDefined();
   });
 });

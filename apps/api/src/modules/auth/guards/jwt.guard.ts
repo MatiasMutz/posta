@@ -7,14 +7,16 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
-import type { Rol, TenantUser } from '@posta/shared-types';
 import { verifySupabaseJwt } from './jwt-verifier';
+import { AuthMembershipService } from '../auth-membership.service';
 
 @Injectable()
 export class JwtGuard implements CanActivate, OnModuleInit {
   private readonly logger = new Logger(JwtGuard.name);
   private readonly jwtSecret = process.env.SUPABASE_JWT_SECRET ?? '';
   private readonly supabaseUrl = process.env.SUPABASE_URL ?? '';
+
+  constructor(private readonly membershipService: AuthMembershipService) {}
 
   onModuleInit() {
     if (!this.jwtSecret) {
@@ -43,20 +45,11 @@ export class JwtGuard implements CanActivate, OnModuleInit {
       supabaseUrl: this.supabaseUrl,
     });
 
-    const tenantId = payload.app_metadata?.tenant_id;
-    const rol = payload.app_metadata?.rol as Rol | undefined;
+    const tenantIdJwt = payload.app_metadata?.tenant_id as string | undefined;
+    const user = await this.membershipService.resolverMembership(payload.sub, tenantIdJwt);
 
-    if (!tenantId || !rol) {
-      throw new UnauthorizedException(
-        'Tu cuenta no tiene un negocio asociado. ' +
-        'Registrate con "Crear cuenta" para crear uno.',
-      );
-    }
-
-    (request as FastifyRequest & { user: TenantUser }).user = {
-      userId: payload.sub,
-      tenantId,
-      rol,
+    (request as FastifyRequest & { user: typeof user }).user = {
+      ...user,
       email: payload.email,
     };
     return true;

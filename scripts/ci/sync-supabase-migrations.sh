@@ -8,16 +8,14 @@ DEST="$ROOT/supabase/migrations"
 
 mkdir -p "$DEST"
 
-copy() {
-  local prefix="$1"
-  local file="$2"
-  cp "$SRC/$file" "$DEST/${prefix}_${file#*_}"
-}
+i=1
+for f in $(ls "$SRC"/[0-9][0-9][0-9][0-9]_*.sql 2>/dev/null | sort); do
+  base="$(basename "$f")"
+  suffix="${base#*_}"
+  prefix="$(printf "2025010100%04d" "$i")"
+  cp "$f" "$DEST/${prefix}_${suffix}"
+  echo "  ${base} -> ${prefix}_${suffix}"
+  i=$((i + 1))
+done
 
-copy 20250101000001 0001_tenants.sql
-copy 20250101000002 0002_inventario.sql
-copy 20250101000003 0003_clientes_imports.sql
-copy 20250101000004 0004_ventas.sql
-copy 20250101000005 0005_storage_imports.sql
-
-echo "Migraciones sincronizadas en supabase/migrations/"
+echo "Migraciones sincronizadas en supabase/migrations/ ($((i - 1)) archivos)"

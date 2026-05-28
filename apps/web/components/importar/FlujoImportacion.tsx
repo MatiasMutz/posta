@@ -49,10 +49,11 @@ export function FlujoImportacion({ token }: FlujoImportacionProps) {
 
     try {
       // 1. Obtener URL firmada de subida
-      const { uploadUrl, storagePath: path } = await apiClient<{ uploadUrl: string; storagePath: string }>(
+      const { data: uploadData } = await apiClient<{ data: { uploadUrl: string; storagePath: string } }>(
         `/imports/upload-url?filename=${encodeURIComponent(file.name)}&tipo=${tipo}`,
         { token },
       );
+      const { uploadUrl, storagePath: path } = uploadData;
 
       // 2. Subir archivo directo a Supabase Storage con la URL firmada
       const uploadRes = await fetch(uploadUrl, {
@@ -64,7 +65,7 @@ export function FlujoImportacion({ token }: FlujoImportacionProps) {
       setStoragePath(path);
 
       // 3. Analizar encabezados y obtener sugerencias de mapeo
-      const datos = await apiClient<AnalizarResponse>('/imports/analizar', {
+      const { data: datos } = await apiClient<{ data: AnalizarResponse }>('/imports/analizar', {
         method: 'POST',
         token,
         body: JSON.stringify({ storagePath: path, tipo }),
@@ -89,12 +90,12 @@ export function FlujoImportacion({ token }: FlujoImportacionProps) {
     setCargando(true);
     setError('');
     try {
-      const { jobId } = await apiClient<{ jobId: string }>('/imports', {
+      const { data } = await apiClient<{ data: { jobId: string } }>('/imports', {
         method: 'POST',
         token,
         body: JSON.stringify({ storagePath, tipo, columnMap: mapeo }),
       });
-      router.push(`/importar/${jobId}`);
+      router.push(`/importar/${data.jobId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar la importación.');
       setCargando(false);

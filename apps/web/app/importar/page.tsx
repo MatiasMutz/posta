@@ -1,13 +1,12 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/supabase/server';
+import { requireSesion } from '@/lib/sesion';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { FlujoImportacion } from '@/components/importar/FlujoImportacion';
 
 export default async function ImportarPage() {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const sesion = await requireSesion();
+  const { rol, accessToken } = sesion;
 
-  const rol = session.user.app_metadata?.rol;
   if (rol !== 'dueno') redirect('/inventario');
 
   return (
@@ -18,7 +17,7 @@ export default async function ImportarPage() {
         <p className="font-sans text-sm text-muted mb-8">
           Subí tu Excel o CSV y el sistema te va a guiar para mapear las columnas.
         </p>
-        <FlujoImportacion token={session.access_token} />
+        <FlujoImportacion token={accessToken} />
       </div>
     </div>
   );

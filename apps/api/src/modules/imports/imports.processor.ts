@@ -41,7 +41,7 @@ export class ImportsProcessor extends WorkerHost {
     try {
       // Fase 1: descargar + parsear
       await setEstado('parseando');
-      const buffer = await this.service.descargarArchivo(storagePath);
+      const buffer = await this.service.descargarArchivo(tenantId, storagePath);
       const rows = this.service.parsearArchivo(buffer);
       const filasMapeadas = this.service.aplicarMapeo(rows, columnMap);
       const total = filasMapeadas.length;

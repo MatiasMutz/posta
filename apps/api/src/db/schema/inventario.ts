@@ -18,6 +18,7 @@ export const productos = pgTable(
     stock_actual: integer('stock_actual').notNull().default(0),
     stock_minimo: integer('stock_minimo').notNull().default(0),
     activo: boolean('activo').notNull().default(true),
+    created_by: uuid('created_by'),
     created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

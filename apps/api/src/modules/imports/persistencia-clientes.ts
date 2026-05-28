@@ -4,7 +4,7 @@ import { clientes } from '../../db/schema';
 
 type ClienteRow = typeof clientes.$inferSelect;
 
-interface IndiceClientes {
+export interface IndiceClientes {
   porCuit: Map<string, ClienteRow>;
   porEmail: Map<string, ClienteRow>;
 }
@@ -37,7 +37,7 @@ async function cargarIndiceClientes(
   return { porCuit, porEmail };
 }
 
-function buscarClienteExistente(
+export function buscarClienteExistente(
   row: Record<string, unknown>,
   indice: IndiceClientes,
 ): ClienteRow | null {

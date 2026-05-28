@@ -1,17 +1,19 @@
 import { Module } from '@nestjs/common';
 import { FacturadorMock } from './facturador-mock';
+import { FacturadorHttp } from './facturador-http';
 import { FACTURADOR_TOKEN } from './facturador.interface';
 
-/**
- * Para enchufar el facturador real (Fase 5+):
- * 1. Crear FacturadorAfipReal implements FacturadorElectronico
- * 2. Cambiar useClass a FacturadorAfipReal aquí
- * El dominio de ventas no necesita ningún cambio.
- */
+function createFacturador() {
+  if (process.env.AFIP_SERVICE_URL) {
+    return new FacturadorHttp();
+  }
+  return new FacturadorMock();
+}
+
 @Module({
   providers: [
     FacturadorMock,
-    { provide: FACTURADOR_TOKEN, useClass: FacturadorMock },
+    { provide: FACTURADOR_TOKEN, useFactory: createFacturador },
   ],
   exports: [FACTURADOR_TOKEN],
 })

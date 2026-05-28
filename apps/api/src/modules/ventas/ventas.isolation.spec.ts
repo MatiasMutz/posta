@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { sql, eq } from 'drizzle-orm';
 import postgres from 'postgres';
-import { tenants, ventas, clientes } from '../../db/schema';
+import { tenants, ventas, itemsVenta } from '../../db/schema';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const skip = !DATABASE_URL;
@@ -16,11 +16,12 @@ type DB = ReturnType<typeof drizzle>;
 
 describe.skipIf(skip)('Aislamiento RLS: ventas', () => {
   const client = postgres(DATABASE_URL!);
-  const db: DB = drizzle(client, { schema: { tenants, ventas, clientes } });
+  const db: DB = drizzle(client, { schema: { tenants, ventas, itemsVenta } });
 
   let tenantAId: string;
   let tenantBId: string;
   let ventaAId: string;
+  let itemAId: string;
 
   async function withCtx<T>(tenantId: string, cb: (tx: DB) => Promise<T>): Promise<T> {
     return db.transaction(async (tx) => {
@@ -49,9 +50,21 @@ describe.skipIf(skip)('Aislamiento RLS: ventas', () => {
       created_by: tenantAId,
     }).returning();
     ventaAId = venta.id;
+
+    const [item] = await db.insert(itemsVenta).values({
+      tenant_id: tenantAId,
+      venta_id: ventaAId,
+      descripcion: 'Producto test',
+      cantidad: '1',
+      precio_unitario: '100.00',
+      subtotal: '100.00',
+    }).returning();
+    itemAId = item.id;
   });
 
   afterAll(async () => {
+    await db.delete(itemsVenta).where(eq(itemsVenta.tenant_id, tenantAId));
+    await db.delete(itemsVenta).where(eq(itemsVenta.tenant_id, tenantBId));
     await db.delete(ventas).where(eq(ventas.tenant_id, tenantAId));
     await db.delete(ventas).where(eq(ventas.tenant_id, tenantBId));
     await db.delete(tenants).where(eq(tenants.id, tenantAId));
@@ -93,9 +106,59 @@ describe.skipIf(skip)('Aislamiento RLS: ventas', () => {
 
   it('sin contexto de tenant, ventas devuelven 0 filas (fail-safe)', async () => {
     const rows = await db.transaction(async (tx) => {
-      // Sin SET LOCAL, el setting queda vacío → policy retorna false → 0 filas
+      await tx.execute(sql.raw('SET LOCAL ROLE authenticated'));
       return (tx as any).select().from(ventas) as unknown[];
     }) as unknown[];
     expect(rows).toHaveLength(0);
+  });
+
+  it('tenant B no puede leer items_venta del tenant A', async () => {
+    const rows = await withCtx(tenantBId, (tx) =>
+      (tx as any).select().from(itemsVenta).where(eq(itemsVenta.id, itemAId)),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it('tenant B no puede insertar un item con tenant_id del A', async () => {
+    await expect(
+      withCtx(tenantBId, (tx) =>
+        (tx as any).insert(itemsVenta).values({
+          tenant_id: tenantAId,
+          venta_id: ventaAId,
+          descripcion: 'Intruso',
+          cantidad: '1',
+          precio_unitario: '10.00',
+          subtotal: '10.00',
+        }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('sin contexto de tenant, items_venta devuelven 0 filas (fail-safe)', async () => {
+    const rows = await db.transaction(async (tx) => {
+      await tx.execute(sql.raw('SET LOCAL ROLE authenticated'));
+      return (tx as any).select().from(itemsVenta) as unknown[];
+    }) as unknown[];
+    expect(rows).toHaveLength(0);
+  });
+
+  it('tenant B no puede actualizar ventas del tenant A', async () => {
+    await withCtx(tenantBId, (tx) =>
+      (tx as any).update(ventas).set({ total: '999.00' }).where(eq(ventas.id, ventaAId)),
+    );
+    const [row] = await withCtx(tenantAId, (tx) =>
+      (tx as any).select().from(ventas).where(eq(ventas.id, ventaAId)),
+    ) as any[];
+    expect(row.total).toBe('100.00');
+  });
+
+  it('tenant B no puede actualizar items_venta del tenant A', async () => {
+    await withCtx(tenantBId, (tx) =>
+      (tx as any).update(itemsVenta).set({ descripcion: 'Hackeado' }).where(eq(itemsVenta.id, itemAId)),
+    );
+    const [row] = await withCtx(tenantAId, (tx) =>
+      (tx as any).select().from(itemsVenta).where(eq(itemsVenta.id, itemAId)),
+    ) as any[];
+    expect(row.descripcion).toBe('Producto test');
   });
 });

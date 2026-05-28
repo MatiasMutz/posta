@@ -13,6 +13,7 @@ const fakeProducto = {
   stock_actual: 10,
   stock_minimo: 5,
   activo: true,
+  created_by: null,
   created_at: new Date(),
   updated_at: new Date(),
 };
@@ -77,6 +78,14 @@ describe('ProductosService.findAll', () => {
     const result = await svc.findAll('tenant-1', { pagina: 1, limite: 50, solo_bajo_stock: false }, 'vendedor');
     expect(result.items[0]).not.toHaveProperty('costo');
     expect(result.items[0]).toHaveProperty('precio');
+  });
+
+  it('oculta costo para contador', async () => {
+    mockCountQuery(1);
+    mockTx.offset.mockResolvedValueOnce([fakeProducto]);
+    const svc = new ProductosService();
+    const result = await svc.findAll('tenant-1', { pagina: 1, limite: 50, solo_bajo_stock: false }, 'contador');
+    expect(result.items[0]).not.toHaveProperty('costo');
   });
 
   it('incluye costo para dueño', async () => {

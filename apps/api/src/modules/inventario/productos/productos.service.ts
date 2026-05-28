@@ -47,8 +47,8 @@ export class ProductosService {
       return { items: rows, total };
     });
 
-    // skill money + regla de roles: vendedor nunca recibe costo
-    if (rol === 'vendedor') {
+    // skill money + regla de roles: solo dueño recibe costo
+    if (rol !== 'dueno') {
       return {
         items: resultado.items.map(({ costo: _costo, ...rest }) => rest),
         total: resultado.total,
@@ -64,7 +64,7 @@ export class ProductosService {
 
     if (!row || !row.activo) throw new NotFoundException('Producto no encontrado');
 
-    if (rol === 'vendedor') {
+    if (rol !== 'dueno') {
       const { costo: _costo, ...rest } = row;
       return rest;
     }
@@ -84,6 +84,7 @@ export class ProductosService {
           precio: dto.precio,
           stock_actual: dto.stock_inicial ?? 0,
           stock_minimo: dto.stock_minimo ?? 0,
+          created_by: userId,
         })
         .returning();
 

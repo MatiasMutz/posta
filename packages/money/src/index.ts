@@ -42,6 +42,11 @@ export function multiply(a: Money, factor: number): Money {
   return asMoney((a * scaled) / 10000n);
 }
 
+/** Multiplica por una fracción exacta (numerador/denominador) sin float. Ej: IVA 21/121 */
+export function multiplyRatio(a: Money, numerator: bigint, denominator: bigint): Money {
+  return asMoney((a * numerator) / denominator);
+}
+
 export function isNegative(m: Money): boolean {
   return m < 0n;
 }

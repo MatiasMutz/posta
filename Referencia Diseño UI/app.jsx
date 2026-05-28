@@ -51,7 +51,7 @@
         </DCSection>
 
         {/* CIERRE */}
-        <DCSection id="closing" title="Alcance del POC y hoja de ruta" subtitle="Qué se muestra hoy · qué viene en el MVP">
+        <DCSection id="closing" title="Alcance del POC y hoja de ruta" subtitle="Qué se muestra hoy · qué viene en el producto">
           <DCArtboard id="roadmap" label="Módulos y próximos pasos" width={1380} height={820}>
             <window.ClosingRecommendation />
           </DCArtboard>

@@ -8,7 +8,7 @@ Este archivo es el centro de mando para cualquier agente de IA que trabaje en es
 
 SaaS multi-tenant de gestión para PyMEs argentinas sin conocimientos técnicos ni contables. Centraliza ventas, stock, compras, tesorería y facturación AFIP detrás de una UX simple, mobile-first, que **oculta la complejidad fiscal**. El diferencial es la **experiencia de uso** y un **motor de importación de Excel infalible** que vence el miedo a migrar.
 
-Contexto completo en `docs/PROJECT.md`. Arquitectura en `docs/ARCHITECTURE.md`. Diseño en `docs/DESIGN_SYSTEM.md`. Plan de fases en `docs/ROADMAP.md`.
+Contexto completo en `docs/PROJECT.md`. Arquitectura en `docs/ARCHITECTURE.md`. Diseño en `docs/DESIGN_SYSTEM.md`. Plan de fases en `docs/ROADMAP.md`. Tests en `docs/TESTING.md`.
 
 ---
 
@@ -39,7 +39,7 @@ Estas reglas no se negocian. Romperlas es un bug crítico aunque "funcione".
 
 ### Integraciones externas
 - El dominio **nunca** llama directo a un servicio externo. Siempre detrás de una interfaz/adaptador inyectado. Ver skill `afip-adapter`.
-- La integración AFIP del MVP es el **mock**; el real se enchufa sin tocar el dominio. La resiliencia ("pendiente de facturación" si AFIP se cae) se implementa y testea desde ya.
+- La integración AFIP en dev/CI usa el **mock**; el real se enchufa en producción sin tocar el dominio. La resiliencia ("pendiente de facturación" si AFIP se cae) se implementa y testea desde ya.
 
 ### Asincronía
 - Nada que sea pesado o dependa de terceros inestables corre en el request. Va a la cola (BullMQ). El parser de Excel **nunca** bloquea la UI; siempre con barra de progreso.

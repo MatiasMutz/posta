@@ -30,23 +30,23 @@ Dueños y empleados de PyMEs argentinas (kioscos, almacenes, gastronómicas, com
 
 **Implicancia de diseño:** la jerga contable y fiscal (IVA, CAE, débito/crédito, retenciones) debe quedar **oculta** para el dueño y el vendedor. El contador sí ve el detalle. Nunca se le muestra al dueño un asiento contable: ve transacciones en lenguaje natural.
 
-### Roles (MVP)
+### Roles del producto
 
 | Rol | Acceso |
 |---|---|
 | **Dueño** | Acceso total: todos los módulos, finanzas, costos, ganancias, reportes y configuración. |
 | **Empleado / Vendedor** | Solo POS (ventas) y visualización de stock. **Bloqueado**: costos, ganancias, finanzas, configuración. |
-| **Contador** | Acceso de **solo lectura** para descargas y exportaciones (IVA Ventas/Compras, Excel de movimientos). Ve el detalle fiscal completo. |
+| **Contador** | Acceso de **solo lectura** para descargas y exportaciones (IVA Ventas/Compras, Excel de movimientos). Ve el detalle fiscal completo. **No** ve costos ni ganancias de productos (solo el dueño). |
 
 El control de acceso por rol no es solo UI: se aplica en el backend a nivel de endpoint y, donde corresponde, condiciona qué columnas/campos se devuelven (un vendedor nunca recibe el costo de un producto en la respuesta de la API).
 
 ---
 
-## 5. Alcance: MVP vs. Roadmap
+## 5. Alcance: producto vs. roadmap futuro
 
-> **Regla de oro del alcance.** Implementamos el **MVP (sección 5.1)**. Todo lo de **Roadmap (sección 5.2)** NO se construye ahora, pero la arquitectura debe dejar las "costuras" (interfaces, puntos de extensión) para que sumarlo después no requiera reescribir el núcleo. Cuando una decisión de diseño del MVP pueda cerrarle la puerta a un módulo del roadmap, se documenta el trade-off y se elige la opción que mantiene la puerta abierta, siempre que no comprometa la simplicidad del MVP.
+> **Regla de oro del alcance.** Implementamos el **alcance del producto (sección 5.1)** con estándares de producción desde el día uno. Todo lo de **Roadmap futuro (sección 5.2)** NO se construye ahora, pero la arquitectura debe dejar las "costuras" (interfaces, puntos de extensión) para que sumarlo después no requiera reescribir el núcleo. Cuando una decisión de diseño del producto pueda cerrarle la puerta a un módulo del roadmap, se documenta el trade-off y se elige la opción que mantiene la puerta abierta, siempre que no comprometa la simplicidad de la UX.
 
-### 5.1. MVP — lo que se construye ahora
+### 5.1. Alcance del producto — lo que se construye ahora
 
 **Cimiento SaaS**
 - Autenticación y registro seguro.
@@ -66,7 +66,7 @@ El control de acceso por rol no es solo UI: se aplica en el backend a nivel de e
 
 **Módulo 2 — Ventas y Facturación Simple**
 - POS ágil: vender en tres clics (producto → método de pago → comprobante).
-- Integración AFIP (WSFEV1): facturas A, B, C y ticket. **En el MVP se construye detrás de una interfaz/adaptador; ver decisión D-07.**
+- Integración AFIP (WSFEV1): facturas A, B, C y ticket. **Se construye detrás de una interfaz/adaptador desde el inicio; ver decisión D-07.**
 - Modo "Remito/Presupuesto" (no fiscal) para vender sin facturar en el momento.
 - Clientes y cuentas corrientes (activos): ficha, historial, saldo deudor.
 - Registro e historial de ventas.
@@ -86,7 +86,7 @@ El control de acceso por rol no es solo UI: se aplica en el backend a nivel de e
 - Caja chica: apertura/cierre diario, ingresos/egresos en efectivo.
 - Flujo de caja: separación visual entre facturación bruta y dinero neto real (restando costo de mercadería e impuestos estimados), en lenguaje claro.
 
-### 5.2. Roadmap — visión, NO se construye en el MVP
+### 5.2. Roadmap futuro — visión, fuera del alcance actual
 
 - **Sincronización e-commerce** (Mercado Libre, Shopify, Tiendanube) con webhooks en tiempo real: descuento de stock, facturación automática, registro de cobro con comisiones.
 - **Mercado Pago / integración bancaria**: cobros netos de tasas y retenciones.
@@ -95,7 +95,7 @@ El control de acceso por rol no es solo UI: se aplica en el backend a nivel de e
 - **Asistente IA fiscal** (chatbot con contexto fiscal local).
 - **Copiloto de migración por IA**: el usuario adjunta un Excel desordenado y la IA lo estructura para importar.
 
-**Costuras a dejar previstas en el MVP** (detalle técnico en `ARCHITECTURE.md`): los módulos de integración externa (AFIP, y a futuro ML/Shopify/MP) viven detrás de adaptadores con interfaz estable; el dominio de ventas/stock/tesorería no conoce el detalle de cada integración. La sincronización e-commerce y los cobros con pasarela asumen procesamiento asíncrono — la infraestructura de colas del MVP (para Excel) es la misma que después sirve a los webhooks.
+**Costuras a dejar previstas en el producto** (detalle técnico en `ARCHITECTURE.md`): los módulos de integración externa (AFIP, y a futuro ML/Shopify/MP) viven detrás de adaptadores con interfaz estable; el dominio de ventas/stock/tesorería no conoce el detalle de cada integración. La sincronización e-commerce y los cobros con pasarela asumen procesamiento asíncrono — la infraestructura de colas del producto (para Excel) es la misma que después sirve a los webhooks.
 
 ---
 
@@ -111,10 +111,10 @@ El control de acceso por rol no es solo UI: se aplica en el backend a nivel de e
 | D-04 | **TypeScript de punta a punta** en la app; **Python** solo para microservicios de integración. | Reduce fricción del agente; comparte tipos/validaciones entre front y back. |
 | D-05 | **Integraciones externas como microservicios** (AFIP primero), pensados para correr en una Lambda y ser consumidos por el monolito vía una interfaz HTTP limpia. | Aísla SOAP/certificados/SDKs externos del núcleo; permite escalar/desplegar la integración por separado; mantiene el monolito limpio. |
 | D-06 | **Multi-tenant: discriminador `tenant_id` + Row-Level Security en Postgres**, con RLS forzado. | Defensa en profundidad: aunque la capa de app olvide un filtro, la base no filtra datos de otro tenant. La seguridad es prioritaria en este producto. Ver skill de RLS. |
-| D-07 | **AFIP: adaptador con interfaz estable, implementación mock primero, real después.** | El MVP no necesita facturar en producción el día uno, pero TODO debe quedar listo para enchufar la integración real (certificados, WSAA, WSFEV1, modo "pendiente de facturación" si AFIP se cae) sin tocar el dominio de ventas. |
+| D-07 | **AFIP: adaptador con interfaz estable, implementación mock primero, real después.** | El producto puede operar con mock en dev/CI mientras se integra AFIP real en producción; TODO debe quedar listo para enchufar la integración real (certificados, WSAA, WSFEV1, modo "pendiente de facturación" si AFIP se cae) sin tocar el dominio de ventas. |
 | D-08 | **Dinero: `NUMERIC` en la base; nunca `float`** en ningún cálculo monetario. Manejo con tipo dedicado en la app. | AFIP exige centavos exactos; los float producen errores de redondeo. Requisito explícito del proyecto. Ver skill de dinero. |
 | D-09 | **Procesamiento asíncrono: cola de trabajos (BullMQ + Redis).** | El parser de Excel pesado no puede bloquear la UI; barra de progreso. La misma cola sirve a futuro para webhooks de e-commerce y reintentos de AFIP. |
-| D-10 | **Idioma: solo español rioplatense.** Moneda: ARS (miles con punto, decimales con coma). Fechas DD/MM/AAAA. | Producto 100% local. No se invierte en i18n en el MVP. |
+| D-10 | **Idioma: solo español rioplatense.** Moneda: ARS (miles con punto, decimales con coma). Fechas DD/MM/AAAA. | Producto 100% local. No se invierte en i18n en la v1. |
 | D-11 | **Despliegue inicial: PaaS** (Supabase + un PaaS para el monolito). AWS + Terraform queda para una fase posterior de escala. | No vale la pena la complejidad de IaC en cloud crudo para el primer release. La elección de Supabase no bloquea esa migración futura. |
 | D-12 | **Proyecto AI-native.** Disciplina de desarrollo impuesta por skills (Superpowers como base + skills de dominio propias), MCPs y reglas en `CLAUDE.md`. TDD obligatorio: ninguna feature se considera hecha sin tests unitarios **y** E2E. | El proyecto se desarrolla mayormente con IA; la calidad depende de que el agente siga lineamientos estrictos y verificables. |
 | D-13 | **ORM: Drizzle.** SQL-first, ligero, control directo sobre queries crudas. `db.execute(sql\`SET LOCAL app.tenant_id = ${tenantId}\`)` es idiomático. Sin capa de abstracción que interfiera con RLS. | Prisma es más maduro, pero el control explícito sobre `SET LOCAL` y la ausencia de un query-builder opaco reducen el riesgo de filtraciones accidentales de contexto de tenant. |

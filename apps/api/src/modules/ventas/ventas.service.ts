@@ -10,7 +10,9 @@ import { ventas, itemsVenta, productos, movimientosStock, clientes } from '../..
 import { respuestaPaginada } from '../../common/pagination';
 import { FACTURADOR_TOKEN } from '../afip/facturador.interface';
 import type { FacturadorElectronico } from '../afip/facturador.interface';
-import { fromString, add, subtract, multiply, toNumericString, ZERO, isNegative } from '@posta/money';
+import {
+  fromString, add, subtract, multiply, multiplyRatio, toNumericString, ZERO, isNegative,
+} from '@posta/money';
 import type { CreateVentaDto, ListVentasQuery, ItemVentaDto } from '@posta/validation';
 
 export const FACTURACION_QUEUE = 'facturacion';
@@ -24,6 +26,8 @@ interface ItemConSubtotal extends ItemVentaDto {
   subtotal: string;
 }
 
+export type ModoReintento = 'automatico' | 'manual';
+
 @Injectable()
 export class VentasService {
   private readonly logger = new Logger(VentasService.name);
@@ -34,7 +38,6 @@ export class VentasService {
   ) {}
 
   async create(tenantId: string, userId: string, dto: CreateVentaDto) {
-    // Calcular subtotales usando el paquete money (sin float drift)
     const itemsConSubtotal: ItemConSubtotal[] = dto.items.map((item) => ({
       ...item,
       subtotal: toNumericString(multiply(fromString(item.precio_unitario), item.cantidad)),
@@ -93,7 +96,6 @@ export class VentasService {
             const stockAnterior = producto.stock_actual;
             const cantidadEntero = Math.round(item.cantidad);
 
-            // Stock insuficiente → error descriptivo; no permite vender en negativo
             if (stockAnterior < cantidadEntero) {
               throw new BadRequestException(
                 `Stock insuficiente para "${producto.nombre}". Disponible: ${stockAnterior}, solicitado: ${cantidadEntero}.`,
@@ -119,7 +121,6 @@ export class VentasService {
         }
       }
 
-      // Actualizar cuenta corriente del cliente si el método de pago es cuenta_corriente
       if (dto.cliente_id && dto.metodo_pago === 'cuenta_corriente') {
         const [cliente] = await tx.select().from(clientes).where(eq(clientes.id, dto.cliente_id)).limit(1);
         if (cliente) {
@@ -134,41 +135,33 @@ export class VentasService {
     });
 
     if (esFiscal) {
-      await this.intentarFacturacion(tenantId, venta.id, dto, total);
+      await this.intentarFacturacionInicial(tenantId, venta.id, dto, total);
     }
 
     return this.findOne(tenantId, venta.id);
   }
 
-  private async intentarFacturacion(
+  private async intentarFacturacionInicial(
     tenantId: string,
     ventaId: string,
     dto: CreateVentaDto,
     total: string,
   ) {
-    try {
-      const resultado = await this.facturador.emitirComprobante({
-        ventaId,
-        tipo: dto.tipo as 'factura_b' | 'factura_a',
-        total,
-        clienteCuit: null,
-        items: dto.items.map((i) => ({
-          descripcion: i.descripcion,
-          cantidad: i.cantidad,
-          precioUnitario: i.precio_unitario,
-          subtotal: toNumericString(multiply(fromString(i.precio_unitario), i.cantidad)),
-        })),
-      });
+    const itemsPayload = dto.items.map((i) => ({
+      descripcion: i.descripcion,
+      cantidad: i.cantidad,
+      precioUnitario: i.precio_unitario,
+      subtotal: toNumericString(multiply(fromString(i.precio_unitario), i.cantidad)),
+    }));
 
-      await withTenant(tenantId, (tx) =>
-        tx.update(ventas).set({
-          estado: 'facturado',
-          cae: resultado.cae,
-          cae_vencimiento: resultado.caeVencimiento.toISOString().slice(0, 10),
-          numero_comprobante: resultado.numeroComprobante,
-          intentos_facturacion: 1,
-          updated_at: new Date(),
-        }).where(eq(ventas.id, ventaId)),
+    try {
+      await this.intentarEmitirComprobante(
+        tenantId,
+        ventaId,
+        dto.tipo as 'factura_b' | 'factura_a',
+        total,
+        itemsPayload,
+        1,
       );
     } catch {
       this.logger.warn(`AFIP falló para venta ${ventaId}. Encolando reintento.`);
@@ -184,13 +177,63 @@ export class VentasService {
     }
   }
 
-  async reintentar(tenantId: string, ventaId: string) {
+  /** Llama AFIP y persiste facturado. Lanza si AFIP falla. */
+  async intentarEmitirComprobante(
+    tenantId: string,
+    ventaId: string,
+    tipo: 'factura_b' | 'factura_a',
+    total: string,
+    items: Array<{
+      descripcion: string;
+      cantidad: number;
+      precioUnitario: string;
+      subtotal: string;
+    }>,
+    intentosFacturacion: number,
+  ) {
+    const resultado = await this.facturador.emitirComprobante({
+      ventaId,
+      tipo,
+      total,
+      clienteCuit: null,
+      items,
+    });
+
+    await withTenant(tenantId, (tx) =>
+      tx.update(ventas).set({
+        estado: 'facturado',
+        cae: resultado.cae,
+        cae_vencimiento: resultado.caeVencimiento.toISOString().slice(0, 10),
+        numero_comprobante: resultado.numeroComprobante,
+        intentos_facturacion: intentosFacturacion,
+        updated_at: new Date(),
+      }).where(eq(ventas.id, ventaId)),
+    );
+
+    return resultado;
+  }
+
+  /** Reintento automático (BullMQ): mantiene pendiente_facturacion si falla. */
+  async reintentarAutomatico(tenantId: string, ventaId: string) {
+    return this.ejecutarReintento(tenantId, ventaId, 'automatico');
+  }
+
+  /** Reintento manual (dueño): desde error_afip; fallo → error_afip definitivo. */
+  async reintentarManual(tenantId: string, ventaId: string) {
+    return this.ejecutarReintento(tenantId, ventaId, 'manual');
+  }
+
+  private async ejecutarReintento(tenantId: string, ventaId: string, modo: ModoReintento) {
     const [venta] = await withTenant(tenantId, (tx) =>
       tx.select().from(ventas).where(eq(ventas.id, ventaId)).limit(1),
     );
     if (!venta) throw new NotFoundException('Venta no encontrada.');
     if (venta.estado === 'facturado') throw new BadRequestException('La venta ya está facturada.');
-    if (venta.estado !== 'pendiente_facturacion' && venta.estado !== 'error_afip') {
+
+    if (modo === 'automatico' && venta.estado !== 'pendiente_facturacion') {
+      throw new BadRequestException('Solo se reintenta automáticamente en estado pendiente de facturación.');
+    }
+    if (modo === 'manual' && venta.estado !== 'pendiente_facturacion' && venta.estado !== 'error_afip') {
       throw new BadRequestException('Solo se pueden reintentar ventas en estado pendiente o error AFIP.');
     }
 
@@ -198,37 +241,41 @@ export class VentasService {
       tx.select().from(itemsVenta).where(eq(itemsVenta.venta_id, ventaId)),
     );
 
+    const itemsPayload = items.map((i) => ({
+      descripcion: i.descripcion,
+      cantidad: Number(i.cantidad),
+      precioUnitario: i.precio_unitario,
+      subtotal: i.subtotal,
+    }));
+
+    const siguienteIntento = (venta.intentos_facturacion ?? 0) + 1;
+
     try {
-      const resultado = await this.facturador.emitirComprobante({
+      const resultado = await this.intentarEmitirComprobante(
+        tenantId,
         ventaId,
-        tipo: venta.tipo as 'factura_b' | 'factura_a',
-        total: venta.total,
-        clienteCuit: null,
-        items: items.map((i) => ({
-          descripcion: i.descripcion,
-          cantidad: parseFloat(i.cantidad),
-          precioUnitario: i.precio_unitario,
-          subtotal: i.subtotal,
-        })),
-      });
-
-      await withTenant(tenantId, (tx) =>
-        tx.update(ventas).set({
-          estado: 'facturado',
-          cae: resultado.cae,
-          cae_vencimiento: resultado.caeVencimiento.toISOString().slice(0, 10),
-          numero_comprobante: resultado.numeroComprobante,
-          intentos_facturacion: (venta.intentos_facturacion ?? 0) + 1,
-          updated_at: new Date(),
-        }).where(eq(ventas.id, ventaId)),
+        venta.tipo as 'factura_b' | 'factura_a',
+        venta.total,
+        itemsPayload,
+        siguienteIntento,
       );
-
       return { facturado: true, cae: resultado.cae };
     } catch {
+      if (modo === 'automatico') {
+        await withTenant(tenantId, (tx) =>
+          tx.update(ventas).set({
+            estado: 'pendiente_facturacion',
+            intentos_facturacion: siguienteIntento,
+            updated_at: new Date(),
+          }).where(eq(ventas.id, ventaId)),
+        );
+        throw new Error('AFIP no respondió. Se reintentará automáticamente.');
+      }
+
       await withTenant(tenantId, (tx) =>
         tx.update(ventas).set({
           estado: 'error_afip',
-          intentos_facturacion: (venta.intentos_facturacion ?? 0) + 1,
+          intentos_facturacion: siguienteIntento,
           updated_at: new Date(),
         }).where(eq(ventas.id, ventaId)),
       );
@@ -287,10 +334,9 @@ export class VentasService {
     });
 
     const data = rows.map((v) => {
-      const totalNum = parseFloat(v.total);
-      // IVA incluido en factura B: IVA = total × 21/121
-      const iva = (totalNum * 21 / 121).toFixed(2);
-      const neto = (totalNum - parseFloat(iva)).toFixed(2);
+      const total = fromString(v.total);
+      const iva = multiplyRatio(total, 21n, 121n);
+      const neto = subtract(total, iva);
       const fecha = new Date(v.created_at);
       return {
         Fecha: `${String(fecha.getDate()).padStart(2, '0')}/${String(fecha.getMonth() + 1).padStart(2, '0')}/${fecha.getFullYear()}`,
@@ -298,8 +344,8 @@ export class VentasService {
         'Nro. Comprobante': v.numero_comprobante ?? '',
         CAE: v.cae ?? '',
         Estado: v.estado,
-        'Neto gravado': neto,
-        'IVA 21%': iva,
+        'Neto gravado': toNumericString(neto),
+        'IVA 21%': toNumericString(iva),
         Total: v.total,
       };
     });
