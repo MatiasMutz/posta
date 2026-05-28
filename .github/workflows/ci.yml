@@ -192,4 +192,4 @@ jobs:
           supabase start
           ./scripts/ci/write-e2e-env.sh
       - name: Run AFIP resilience E2E
-        run: pnpm --filter web exec playwright test --grep "AFIP"
+        run: pnpm test:e2e:afip

@@ -10,6 +10,7 @@
     "test": "pnpm build:packages && pnpm -r test",
     "test:integration": "pnpm build:packages && pnpm --filter api test:integration:all",
     "test:e2e": "pnpm build:packages && bash scripts/ci/e2e-preflight.sh && pnpm --filter web test:e2e",
+    "test:e2e:afip": "pnpm build:packages && bash scripts/ci/e2e-preflight.sh && pnpm --filter web exec playwright test --grep \"AFIP\"",
     "db:migrate": "bash scripts/db/migrate-local.sh",
     "lint": "pnpm --filter api lint && pnpm --filter web lint",
     "typecheck": "pnpm build:packages && pnpm -r typecheck",
