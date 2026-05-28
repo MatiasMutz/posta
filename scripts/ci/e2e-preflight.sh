@@ -8,8 +8,28 @@ E2E_API_PORT="${E2E_API_PORT:-3002}"
 
 echo "▸ Verificando prerrequisitos E2E…"
 
-if ! redis-cli ping >/dev/null 2>&1; then
-  echo "ERROR: Redis no responde en ${REDIS_URL:-redis://127.0.0.1:6379}."
+REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6379}"
+REDIS_HOST="$(printf '%s' "$REDIS_URL" | sed -E 's#^redis://([^:/]+).*#\1#')"
+REDIS_PORT="$(printf '%s' "$REDIS_URL" | sed -E 's#^redis://[^:]+:([0-9]+).*#\1#')"
+REDIS_PORT="${REDIS_PORT:-6379}"
+
+redis_responde() {
+  if command -v redis-cli >/dev/null 2>&1; then
+    redis-cli -u "$REDIS_URL" ping >/dev/null 2>&1
+    return
+  fi
+
+  # En CI (GHA) Redis corre como service container; el runner no trae redis-cli.
+  if command -v nc >/dev/null 2>&1; then
+    nc -z "$REDIS_HOST" "$REDIS_PORT" >/dev/null 2>&1
+    return
+  fi
+
+  (echo > "/dev/tcp/${REDIS_HOST}/${REDIS_PORT}") >/dev/null 2>&1
+}
+
+if ! redis_responde; then
+  echo "ERROR: Redis no responde en ${REDIS_URL}."
   echo "       Iniciá Redis: redis-server  (o: brew services start redis)"
   exit 1
 fi

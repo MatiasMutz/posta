@@ -9,8 +9,11 @@ echo "OpenAPI smoke: ${DOCS_URL}"
 
 json="$(curl -sf "${DOCS_URL}")"
 
+# Debe coincidir con app.setGlobalPrefix('api/v1') en apps/api/src/main.ts
+API_PREFIX="/api/v1"
+
 check_path() {
-  local path="$1"
+  local path="${API_PREFIX}$1"
   if ! echo "$json" | grep -q "\"${path}\""; then
     echo "Falta path en OpenAPI: ${path}" >&2
     exit 1
