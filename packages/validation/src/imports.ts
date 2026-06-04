@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const TipoImportSchema = z.enum(['inventario', 'clientes']);
+export const TipoImportSchema = z.enum(['inventario', 'clientes', 'proveedores']);
 
 export const ColumnaMapeoSchema = z.object({
   headerArchivo: z.string(),

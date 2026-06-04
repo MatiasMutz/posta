@@ -40,6 +40,8 @@ const ESTADO_LABEL: Record<string, string> = {
 const TIPO_LABEL: Record<string, string> = {
   factura_b: 'Fac. B',
   factura_a: 'Fac. A',
+  factura_c: 'Fac. C',
+  ticket: 'Ticket',
   remito: 'Remito',
   presupuesto: 'Presupuesto',
 };

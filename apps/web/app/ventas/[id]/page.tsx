@@ -86,9 +86,14 @@ export default async function VentaDetallePage({
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="font-serif text-2xl text-ink">
-              {venta.tipo === 'factura_b' ? 'Factura B' :
-               venta.tipo === 'factura_a' ? 'Factura A' :
-               venta.tipo === 'remito' ? 'Remito' : 'Presupuesto'}
+              {{
+                factura_b: 'Factura B',
+                factura_a: 'Factura A',
+                factura_c: 'Factura C',
+                ticket: 'Ticket',
+                remito: 'Remito',
+                presupuesto: 'Presupuesto',
+              }[venta.tipo] ?? venta.tipo}
             </h1>
             <p className="font-sans text-xs text-muted mt-0.5">{formatFecha(venta.created_at)}</p>
           </div>

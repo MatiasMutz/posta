@@ -7,7 +7,7 @@
 
 export interface VentaParaFacturar {
   ventaId: string;
-  tipo: 'factura_b' | 'factura_a';
+  tipo: 'factura_b' | 'factura_a' | 'factura_c' | 'ticket';
   total: string; // NUMERIC string
   clienteCuit?: string | null;
   items: Array<{

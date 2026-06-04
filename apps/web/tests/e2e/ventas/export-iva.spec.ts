@@ -14,12 +14,10 @@ test.describe('Exportación IVA Ventas', () => {
 
   test('descarga archivo al exportar', async ({ page }) => {
     await page.goto('/ventas/historial');
-    const downloadPromise = page.waitForEvent('download', { timeout: 20_000 }).catch(() => null);
+    const downloadPromise = page.waitForEvent('download', { timeout: 20_000 });
     await page.getByRole('button', { name: /Exportar IVA Ventas/ }).click();
     const download = await downloadPromise;
-    if (download) {
-      expect(download.suggestedFilename()).toMatch(/iva-ventas/i);
-    }
+    expect(download.suggestedFilename()).toMatch(/iva-ventas/i);
   });
 });
 

@@ -111,9 +111,15 @@ export function PollingEstado({ jobId, token }: PollingEstadoProps) {
 
       {finalizado && (
         <div className="flex gap-3">
-          <Link href={estado.tipo === 'inventario' ? '/inventario' : '/clientes'}>
+          <Link href={
+            estado.tipo === 'inventario'
+              ? '/inventario'
+              : estado.tipo === 'proveedores'
+                ? '/proveedores'
+                : '/clientes'
+          }>
             <ABtn variant="primary" size="sm">
-              Ver {estado.tipo === 'inventario' ? 'inventario' : 'clientes'}
+              Ver {estado.tipo === 'inventario' ? 'inventario' : estado.tipo === 'proveedores' ? 'proveedores' : 'clientes'}
             </ABtn>
           </Link>
           <Link href="/importar">

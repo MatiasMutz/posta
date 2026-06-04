@@ -26,6 +26,7 @@ export class TenantsController {
 
   @Get('me')
   @ApiGetAuth('Tenant actual y rol del usuario autenticado')
+  @Roles('dueno', 'vendedor', 'contador')
   async getTenantActual(@CurrentUser() user: TenantUser) {
     const tenant = await this.tenantsService.getTenantActual(user.tenantId);
     return {

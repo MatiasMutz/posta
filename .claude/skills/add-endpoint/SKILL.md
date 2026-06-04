@@ -26,7 +26,7 @@ Schemas Zod en `packages/validation/src/` — reutilizables en front (React Hook
 
 - [ ] Schema Zod en `@posta/validation` (+ `pnpm build:packages` si cambió)
 - [ ] `@Controller('recurso')` plural, bajo `/api/v1` (global prefix)
-- [ ] `@UseGuards(JwtGuard, RolesGuard)` + `@Roles(...)` por handler
+- [ ] `@UseGuards(JwtGuard, RolesGuard)` + `@Roles(...)` en **cada** handler (sin decorador = cualquier autenticado; evitar omisiones)
 - [ ] `ZodValidationPipe` en body/query
 - [ ] `tenantId` de `@CurrentUser()` — **nunca** del body o params
 - [ ] Service: queries con `withTenant(tenantId, ...)` — no reimplementar `set_config`
@@ -45,6 +45,7 @@ Schemas Zod en `packages/validation/src/` — reutilizables en front (React Hook
 @UseGuards(JwtGuard, RolesGuard)
 export class ProductosController {
   @Get()
+  @Roles('dueno', 'vendedor', 'contador')
   async findAll(
     @CurrentUser() user: TenantUser,
     @Query(new ZodValidationPipe(ListProductosQuerySchema)) query: ListProductosQuery,

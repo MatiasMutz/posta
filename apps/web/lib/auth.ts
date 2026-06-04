@@ -57,5 +57,12 @@ export function redirectPorRol(pathname: string, rol: string | undefined): strin
     return '/ventas/historial';
   }
 
+  if (pathname.startsWith('/proveedores') || pathname.startsWith('/compras')) {
+    if (r === 'vendedor') return '/ventas';
+    if (r !== 'dueno' && (pathname === '/proveedores/nuevo' || pathname.endsWith('/editar') || pathname === '/compras/nueva')) {
+      return pathname.startsWith('/proveedores') ? '/proveedores' : '/compras/historial';
+    }
+  }
+
   return null;
 }

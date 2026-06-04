@@ -1,7 +1,18 @@
 import { z } from 'zod';
 import { MontoSchema, PaginacionSchema } from './common';
 
-export const TipoComprobanteSchema = z.enum(['factura_b', 'factura_a', 'remito', 'presupuesto']);
+export const TipoComprobanteSchema = z.enum([
+  'factura_b',
+  'factura_a',
+  'factura_c',
+  'ticket',
+  'remito',
+  'presupuesto',
+]);
+
+/** Tipos que pasan por AFIP (mock/real). */
+export const TIPOS_COMPROBANTE_FISCAL = ['factura_b', 'factura_a', 'factura_c', 'ticket'] as const;
+
 export const MetodoPagoSchema = z.enum(['efectivo', 'debito', 'credito', 'transferencia', 'cuenta_corriente']);
 export const EstadoVentaSchema = z.enum(['facturado', 'pendiente_facturacion', 'error_afip', 'remito', 'presupuesto']);
 
@@ -49,6 +60,11 @@ export const ListVentasQuerySchema = PaginacionSchema.extend({
 });
 
 export type TipoComprobante = z.infer<typeof TipoComprobanteSchema>;
+export type TipoComprobanteFiscal = (typeof TIPOS_COMPROBANTE_FISCAL)[number];
+
+export function esComprobanteFiscal(tipo: TipoComprobante): tipo is TipoComprobanteFiscal {
+  return (TIPOS_COMPROBANTE_FISCAL as readonly string[]).includes(tipo);
+}
 export type MetodoPago = z.infer<typeof MetodoPagoSchema>;
 export type EstadoVenta = z.infer<typeof EstadoVentaSchema>;
 export type ItemVentaDto = z.infer<typeof ItemVentaSchema>;

@@ -13,9 +13,11 @@ import type { AnalizarImportDto, CrearImportDto, FilaCorreccion, TipoImport, Col
 import type { FilaConError } from '../../db/schema/imports';
 import { INVENTARIO_CAMPOS } from './profiles/inventario.profile';
 import { CLIENTES_CAMPOS } from './profiles/clientes.profile';
+import { PROVEEDORES_CAMPOS } from './profiles/proveedores.profile';
 import type { CampoDefinicion } from './profiles/inventario.profile';
 import { guardarFilasInventario } from './persistencia-inventario';
 import { guardarFilasClientes } from './persistencia-clientes';
+import { guardarFilasProveedores } from './persistencia-proveedores';
 import { assertStoragePathDelTenant } from './storage-path';
 
 export const IMPORTS_QUEUE = 'imports';
@@ -145,7 +147,11 @@ export class ImportsService implements OnModuleInit {
       throw new BadRequestException('Solo se pueden corregir jobs que ya finalizaron.');
     }
 
-    const perfil = job.tipo === 'inventario' ? INVENTARIO_CAMPOS : CLIENTES_CAMPOS;
+    const perfil = job.tipo === 'inventario'
+      ? INVENTARIO_CAMPOS
+      : job.tipo === 'proveedores'
+        ? PROVEEDORES_CAMPOS
+        : CLIENTES_CAMPOS;
     const validas: Record<string, unknown>[] = [];
     const erroresResidual: FilaConError[] = [];
 
@@ -263,6 +269,9 @@ export class ImportsService implements OnModuleInit {
       const stats = await withTenant(tenantId, async (tx) => {
         if (tipo === 'inventario') {
           return guardarFilasInventario(tx, tenantId, userId, batch);
+        }
+        if (tipo === 'proveedores') {
+          return guardarFilasProveedores(tx, tenantId, batch);
         }
         return guardarFilasClientes(tx, tenantId, batch);
       });

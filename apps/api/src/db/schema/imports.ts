@@ -7,7 +7,7 @@ export const importJobs = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     tenant_id: uuid('tenant_id').notNull(),
-    tipo: varchar('tipo', { length: 20 }).notNull().$type<'inventario' | 'clientes'>(),
+    tipo: varchar('tipo', { length: 20 }).notNull().$type<'inventario' | 'clientes' | 'proveedores'>(),
     estado: varchar('estado', { length: 20 }).notNull().default('pendiente')
       .$type<'pendiente' | 'procesando' | 'completado' | 'error'>(),
     fase: varchar('fase', { length: 20 }).$type<'parseando' | 'validando' | 'importando'>(),

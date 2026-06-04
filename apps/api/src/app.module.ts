@@ -10,6 +10,7 @@ import { InventarioModule } from './modules/inventario/inventario.module';
 import { ImportsModule } from './modules/imports/imports.module';
 import { ClientesModule } from './modules/clientes/clientes.module';
 import { VentasModule } from './modules/ventas/ventas.module';
+import { ComprasModule } from './modules/compras/compras.module';
 
 const throttleEnabled = process.env.THROTTLE_ENABLED !== '0';
 
@@ -29,6 +30,7 @@ const throttleEnabled = process.env.THROTTLE_ENABLED !== '0';
     ImportsModule,
     ClientesModule,
     VentasModule,
+    ComprasModule,
   ],
   providers: [
     ...(throttleEnabled ? [{ provide: APP_GUARD, useClass: ThrottlerGuard }] : []),

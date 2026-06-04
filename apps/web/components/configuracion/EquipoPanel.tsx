@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { ABtn } from '@/components/ui';
@@ -32,19 +32,19 @@ export function EquipoPanel({ token }: EquipoPanelProps) {
   const [mensaje, setMensaje] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function cargar() {
+  const cargar = useCallback(async () => {
     const res = await apiClient<{
       data: { miembros: Miembro[]; invitacionesPendientes: Invitacion[] };
     }>('/tenants/usuarios', { token });
     setMiembros(res.data.miembros);
     setInvitaciones(res.data.invitacionesPendientes);
-  }
+  }, [token]);
 
   useEffect(() => {
     cargar().catch((err) => {
       setError(err instanceof ApiError ? err.message : 'No se pudo cargar el equipo.');
     });
-  }, [token]);
+  }, [cargar]);
 
   async function handleInvitar(e: React.FormEvent) {
     e.preventDefault();

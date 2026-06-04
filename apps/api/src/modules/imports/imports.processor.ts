@@ -7,6 +7,7 @@ import { importJobs } from '../../db/schema';
 import { ImportsService, IMPORTS_QUEUE } from './imports.service';
 import { INVENTARIO_CAMPOS } from './profiles/inventario.profile';
 import { CLIENTES_CAMPOS } from './profiles/clientes.profile';
+import { PROVEEDORES_CAMPOS } from './profiles/proveedores.profile';
 import type { ImportJobData } from './imports.service';
 import type { FilaConError } from '../../db/schema/imports';
 import { filtrarDuplicadosEnArchivo, type FilaImportable } from './import-validators';
@@ -48,7 +49,11 @@ export class ImportsProcessor extends WorkerHost {
       await setEstado('validando', 0, total);
 
       // Fase 2: validar fila a fila con reporte periódico de progreso
-      const perfil = tipo === 'inventario' ? INVENTARIO_CAMPOS : CLIENTES_CAMPOS;
+      const perfil = tipo === 'inventario'
+        ? INVENTARIO_CAMPOS
+        : tipo === 'proveedores'
+          ? PROVEEDORES_CAMPOS
+          : CLIENTES_CAMPOS;
       const filasValidadas: FilaImportable[] = [];
       const errores: FilaConError[] = [];
 

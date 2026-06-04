@@ -25,9 +25,22 @@ const CLIENTES_ALIASES: Record<string, string[]> = {
   direccion: ['direccion', 'domicilio', 'address', 'dir', 'domicilio_comercial'],
 };
 
+const PROVEEDORES_ALIASES: Record<string, string[]> = {
+  nombre: ['nombre', 'proveedor', 'razon_social', 'razon social', 'name'],
+  email: ['email', 'correo', 'mail', 'e-mail'],
+  telefono: ['telefono', 'tel', 'phone', 'celular', 'cel'],
+  cuit: ['cuit', 'cuit/cuil', 'cuil', 'documento_fiscal'],
+  direccion: ['direccion', 'domicilio', 'address', 'dir'],
+  saldo_acreedor: [
+    'saldo', 'saldo_acreedor', 'saldo_inicial', 'deuda', 'adeudado',
+    'cuenta_corriente', 'cta_cte', 'saldo_proveedor',
+  ],
+};
+
 const ALIASES_POR_TIPO: Record<TipoImport, Record<string, string[]>> = {
   inventario: INVENTARIO_ALIASES,
   clientes: CLIENTES_ALIASES,
+  proveedores: PROVEEDORES_ALIASES,
 };
 
 const CONFIDENCE_THRESHOLD = 0.80;

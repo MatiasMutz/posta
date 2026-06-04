@@ -81,6 +81,18 @@ describe('validarVentaPos', () => {
     }
   });
 
+  it('acepta factura C y ticket sin cliente', () => {
+    for (const tipo of ['factura_c', 'ticket'] as const) {
+      const result = validarVentaPos({
+        tipo,
+        metodoPago: 'efectivo',
+        clienteId: '',
+        items: [itemBase],
+      });
+      expect(result.ok).toBe(true);
+    }
+  });
+
   it('acepta remito sin cliente', () => {
     const result = validarVentaPos({
       tipo: 'remito',

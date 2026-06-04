@@ -121,7 +121,7 @@ export function filtrarDuplicadosEnArchivo(
   tipo: TipoImport,
   filas: FilaImportable[],
 ): { filasOk: FilaImportable[]; errores: FilaConError[] } {
-  return tipo === 'inventario'
-    ? filtrarDuplicadosInventario(filas)
-    : filtrarDuplicadosClientes(filas);
+  if (tipo === 'inventario') return filtrarDuplicadosInventario(filas);
+  if (tipo === 'clientes' || tipo === 'proveedores') return filtrarDuplicadosClientes(filas);
+  return { filasOk: filas, errores: [] };
 }

@@ -42,7 +42,7 @@ Mantener ≤ 5–7 MCPs activos (`CLAUDE.md` §6).
 Ver `CLAUDE.md` §4 y `docs/TESTING.md`.
 
 1. Unit tests dominio
-2. E2E si hay UI (o spec en `docs/E2E-PENDING-SPECS.md` hasta implementar)
+2. E2E si hay UI (`apps/web/tests/e2e/`)
 3. `pnpm lint`, `pnpm typecheck`, `pnpm test`
 4. `pnpm test:integration` si toca RLS/roles
 5. Sin violaciones `CLAUDE.md` §3

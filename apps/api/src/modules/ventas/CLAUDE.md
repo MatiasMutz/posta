@@ -35,8 +35,8 @@ Responsabilidades: POS (punto de venta), facturación AFIP (via adaptador), hist
 
 `GET /ventas/iva-ventas?desde=YYYY-MM-DD&hasta=YYYY-MM-DD` devuelve `.xlsx` con:
 - Fecha, Tipo, Nro. Comprobante, CAE, Estado, Neto gravado, IVA 21%, Total
-- Solo incluye `factura_b` y `factura_a` con `estado = facturado` (excluye remitos, presupuestos y ventas pendientes/error AFIP).
-- IVA calculado como `total × 21/121` (IVA incluido en precio).
+- Solo incluye comprobantes fiscales (`factura_b`, `factura_a`, `factura_c`, `ticket`) con `estado = facturado` (excluye remitos, presupuestos y ventas pendientes/error AFIP).
+- IVA: `total × 21/121` para B, A y ticket; Factura C (exento) → IVA 0 y neto = total.
 
 ## Simular caída de AFIP
 

@@ -64,7 +64,7 @@ Fuente de verdad: `apps/api/drizzle/`. Copia en `supabase/migrations/` vía `./s
 pnpm db:migrate
 
 # O manualmente en SQL Editor de Supabase, en orden:
-# 0001_tenants … 0008_auditoria_clientes
+# 0001_tenants … 0010_usuarios_tenant_grants
 ```
 
 Migraciones actuales:
@@ -78,6 +78,8 @@ Migraciones actuales:
 0006_rls_policies_explicit.sql
 0007_invitaciones.sql
 0008_auditoria_clientes.sql
+0009_productos_auditoria_triggers.sql
+0010_usuarios_tenant_grants.sql
 ```
 
 Verificar alineación: `pnpm --filter api db:check`
@@ -103,6 +105,16 @@ pnpm dev:web
 - Web: http://localhost:3000
 
 ---
+
+## Verificación local completa
+
+```bash
+pnpm db:migrate
+pnpm lint && pnpm typecheck && pnpm test
+pnpm --filter api db:check
+pnpm test:integration   # requiere DATABASE_URL + Redis
+pnpm test:e2e           # requiere Supabase local, Redis, scripts/ci/write-e2e-env.sh
+```
 
 ## Tests
 

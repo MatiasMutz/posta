@@ -13,7 +13,13 @@ import type { FacturadorElectronico } from '../afip/facturador.interface';
 import {
   fromString, add, subtract, multiply, multiplyRatio, toNumericString, ZERO, isNegative,
 } from '@posta/money';
-import type { CreateVentaDto, ListVentasQuery, ItemVentaDto } from '@posta/validation';
+import {
+  esComprobanteFiscal,
+  type CreateVentaDto,
+  type ListVentasQuery,
+  type ItemVentaDto,
+  type TipoComprobanteFiscal,
+} from '@posta/validation';
 
 export const FACTURACION_QUEUE = 'facturacion';
 
@@ -58,7 +64,7 @@ export class VentasService {
     const descuento = toNumericString(descuentoMoney);
     const total = toNumericString(totalMoney);
 
-    const esFiscal = dto.tipo === 'factura_b' || dto.tipo === 'factura_a';
+    const esFiscal = esComprobanteFiscal(dto.tipo);
     const estadoInicial = esFiscal ? 'pendiente_facturacion' : dto.tipo;
 
     let clienteCuit: string | null = null;
@@ -186,7 +192,7 @@ export class VentasService {
       await this.intentarEmitirComprobante(
         tenantId,
         ventaId,
-        dto.tipo as 'factura_b' | 'factura_a',
+        dto.tipo as TipoComprobanteFiscal,
         total,
         itemsPayload,
         1,
@@ -210,7 +216,7 @@ export class VentasService {
   async intentarEmitirComprobante(
     tenantId: string,
     ventaId: string,
-    tipo: 'factura_b' | 'factura_a',
+    tipo: TipoComprobanteFiscal,
     total: string,
     items: Array<{
       descripcion: string;
@@ -294,7 +300,7 @@ export class VentasService {
       const resultado = await this.intentarEmitirComprobante(
         tenantId,
         ventaId,
-        venta.tipo as 'factura_b' | 'factura_a',
+        venta.tipo as TipoComprobanteFiscal,
         venta.total,
         itemsPayload,
         siguienteIntento,
@@ -365,7 +371,7 @@ export class VentasService {
   ): Promise<Buffer> {
     const rows = await withTenant(tenantId, async (tx) => {
       const conditions = [
-        inArray(ventas.tipo, ['factura_b', 'factura_a']),
+        inArray(ventas.tipo, ['factura_b', 'factura_a', 'factura_c', 'ticket']),
         eq(ventas.estado, 'facturado'),
       ];
       if (query.desde) conditions.push(gte(ventas.created_at, new Date(query.desde)));
@@ -375,14 +381,22 @@ export class VentasService {
         .orderBy(ventas.created_at);
     });
 
+    const etiquetaTipo: Record<string, string> = {
+      factura_b: 'Factura B',
+      factura_a: 'Factura A',
+      factura_c: 'Factura C',
+      ticket: 'Ticket',
+    };
+
     const data = rows.map((v) => {
       const total = fromString(v.total);
-      const iva = multiplyRatio(total, 21n, 121n);
-      const neto = subtract(total, iva);
+      const exento = v.tipo === 'factura_c';
+      const iva = exento ? ZERO : multiplyRatio(total, 21n, 121n);
+      const neto = exento ? total : subtract(total, iva);
       const fecha = new Date(v.created_at);
       return {
         Fecha: `${String(fecha.getDate()).padStart(2, '0')}/${String(fecha.getMonth() + 1).padStart(2, '0')}/${fecha.getFullYear()}`,
-        Tipo: v.tipo === 'factura_b' ? 'Factura B' : 'Factura A',
+        Tipo: etiquetaTipo[v.tipo] ?? v.tipo,
         'Nro. Comprobante': v.numero_comprobante ?? '',
         CAE: v.cae ?? '',
         Estado: v.estado,

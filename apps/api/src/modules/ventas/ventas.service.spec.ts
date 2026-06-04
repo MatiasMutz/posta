@@ -360,6 +360,26 @@ describe('VentasService.exportarIvaVentas', () => {
     expect(buffer.length).toBeGreaterThan(0);
   });
 
+  it('exporta factura C con IVA 0 (exento)', async () => {
+    mockWithTenant.mockResolvedValueOnce([
+      {
+        ...fakeVenta,
+        total: '1000.00',
+        tipo: 'factura_c',
+        estado: 'facturado',
+        created_at: new Date('2026-01-15'),
+      },
+    ]);
+    const svc = crearServicio();
+    const buffer = await svc.exportarIvaVentas('t1', {});
+    const XLSX = await import('xlsx');
+    const wb = XLSX.read(buffer, { type: 'buffer' });
+    const row = XLSX.utils.sheet_to_json<Record<string, string>>(wb.Sheets['IVA Ventas'])[0];
+    expect(row.Tipo).toBe('Factura C');
+    expect(row['IVA 21%']).toBe('0.00');
+    expect(row['Neto gravado']).toBe('1000.00');
+  });
+
   it('solo incluye ventas en estado facturado (query con filtro)', async () => {
     mockWithTenant.mockImplementationOnce(async (_id, cb) => {
       // Simula que la query devuelve solo facturadas

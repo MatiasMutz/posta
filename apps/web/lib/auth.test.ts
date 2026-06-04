@@ -37,4 +37,12 @@ describe('redirectPorRol', () => {
     expect(redirectPorRol('/ventas/historial', 'vendedor')).toBe('/ventas');
     expect(redirectPorRol('/ventas/historial', 'contador')).toBeNull();
   });
+
+  it('bloquea compras y proveedores al vendedor y escritura al contador', () => {
+    expect(redirectPorRol('/proveedores', 'vendedor')).toBe('/ventas');
+    expect(redirectPorRol('/compras/historial', 'vendedor')).toBe('/ventas');
+    expect(redirectPorRol('/compras/nueva', 'contador')).toBe('/compras/historial');
+    expect(redirectPorRol('/proveedores/nuevo', 'contador')).toBe('/proveedores');
+    expect(redirectPorRol('/proveedores', 'contador')).toBeNull();
+  });
 });

@@ -7,7 +7,7 @@ import { MapeadorColumnas } from './MapeadorColumnas';
 import { ABtn } from '@/components/ui';
 import type { ColumnaMapeo } from '@posta/validation';
 
-type TipoImport = 'inventario' | 'clientes';
+type TipoImport = 'inventario' | 'clientes' | 'proveedores';
 type Paso = 'seleccion' | 'mapeando' | 'confirmando' | 'error';
 
 interface Sugerencia {
@@ -29,6 +29,7 @@ interface FlujoImportacionProps {
 const TIPO_LABELS: Record<TipoImport, string> = {
   inventario: 'Inventario (productos)',
   clientes: 'Clientes',
+  proveedores: 'Proveedores (saldos iniciales)',
 };
 
 export function FlujoImportacion({ token }: FlujoImportacionProps) {

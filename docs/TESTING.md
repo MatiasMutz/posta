@@ -38,6 +38,8 @@ pnpm test:integration
 
 Por cada tabla con RLS: `*.isolation.spec.ts` con lectura/escritura cruzada entre tenants **y** test fail-safe (sin `set_config` → 0 filas).
 
+Imports Storage: policies en `0005_storage_imports.sql` + validación de path en API (`assertStoragePathDelTenant`, `storage-path.spec.ts`).
+
 ## E2E
 
 Ver `.claude/skills/e2e-feature/SKILL.md` y `apps/web/playwright.config.ts`.

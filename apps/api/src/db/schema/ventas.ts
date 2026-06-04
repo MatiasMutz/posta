@@ -5,7 +5,7 @@ import {
 import { productos } from './inventario';
 import { clientes } from './clientes';
 
-export type TipoComprobante = 'factura_b' | 'factura_a' | 'remito' | 'presupuesto';
+export type TipoComprobante = 'factura_b' | 'factura_a' | 'factura_c' | 'ticket' | 'remito' | 'presupuesto';
 export type EstadoVenta = 'facturado' | 'pendiente_facturacion' | 'error_afip' | 'remito' | 'presupuesto';
 export type MetodoPago = 'efectivo' | 'debito' | 'credito' | 'transferencia' | 'cuenta_corriente';
 

@@ -31,6 +31,7 @@ export class ProductosController {
 
   @Get()
   @ApiGetAuth('Listar productos paginados')
+  @Roles('dueno', 'vendedor', 'contador')
   async findAll(
     @CurrentUser() user: TenantUser,
     @Query(new ZodValidationPipe(ListProductosQuerySchema)) query: ListProductosQuery,
@@ -41,6 +42,7 @@ export class ProductosController {
 
   @Get(':id')
   @ApiGetAuth('Detalle de producto')
+  @Roles('dueno', 'vendedor', 'contador')
   async findOne(@CurrentUser() user: TenantUser, @Param('id') id: string) {
     const data = await this.productosService.findOne(user.tenantId, id, user.rol);
     return { data };

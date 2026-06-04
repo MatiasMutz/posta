@@ -14,7 +14,7 @@ export async function irAImportar(page: Page): Promise<void> {
 /** Sube CSV/Excel y espera el mapeo de columnas (upload Storage + analizar API). */
 export async function subirArchivoImport(
   page: Page,
-  tipo: 'Inventario (productos)' | 'Clientes',
+  tipo: 'Inventario (productos)' | 'Clientes' | 'Proveedores (saldos iniciales)',
   rutaArchivo: string,
   nombreArchivo: string,
 ): Promise<void> {

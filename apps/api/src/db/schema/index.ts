@@ -4,3 +4,5 @@ export * from './inventario';
 export * from './clientes';
 export * from './imports';
 export * from './ventas';
+export * from './proveedores';
+export * from './compras';

@@ -28,6 +28,7 @@ POST /imports/:jobId/reintento { correcciones }     → { importados, erroresRes
 |---|---|
 | inventario | `profiles/inventario.profile.ts` — crea productos + movimiento inicial |
 | clientes | `profiles/clientes.profile.ts` — crea clientes |
+| proveedores | `profiles/proveedores.profile.ts` — upsert proveedores + suma `saldo_acreedor` |
 
 Para agregar un nuevo tipo: crear el perfil en `profiles/`, agregarlo a `ALIASES_POR_TIPO` en `column-mapper.ts`, extender `TipoImportSchema` en `packages/validation`.
 
@@ -41,3 +42,4 @@ Bucket: `imports`. Archivos en `{tenantId}/{timestamp}-{filename}`.
 - El frontend obtiene la URL firmada vía `GET /imports/upload-url` y sube directo a Supabase Storage.
 - El worker descarga con el admin client (`SUPABASE_SERVICE_ROLE_KEY`).
 - Las policies de Storage están en `drizzle/0005_storage_imports.sql` (bucket `imports`).
+- **Defensa en profundidad:** además de RLS en Storage (JWT `app_metadata.tenant_id`), la API valida cada `storagePath` con `assertStoragePathDelTenant` antes de analizar/crear/descargar (tests en `storage-path.spec.ts` e `imports.service.spec.ts`).

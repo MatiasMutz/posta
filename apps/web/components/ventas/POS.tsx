@@ -271,6 +271,8 @@ export function POS({ productos, clientes, token, buscarInicial = '' }: POSProps
               <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="w-full px-2 py-1.5 font-sans text-xs text-ink bg-paper border border-rule rounded-[2px] focus:outline-none focus:border-accent">
                 <option value="factura_b">Factura B</option>
                 <option value="factura_a">Factura A</option>
+                <option value="factura_c">Factura C</option>
+                <option value="ticket">Ticket</option>
                 <option value="remito">Remito</option>
                 <option value="presupuesto">Presupuesto</option>
               </select>
