@@ -10,12 +10,20 @@ interface BtnExportarIvaProps {
 export function BtnExportarIva({ token }: BtnExportarIvaProps) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
 
   async function handleExportar() {
     setCargando(true);
     setError('');
     try {
-      const blob = await apiClientBlob('/ventas/iva-ventas', { token });
+      const params = new URLSearchParams();
+      if (desde) params.set('desde', desde);
+      if (hasta) params.set('hasta', hasta);
+      const qs = params.toString();
+      const path = qs ? `/ventas/iva-ventas?${qs}` : '/ventas/iva-ventas';
+
+      const blob = await apiClientBlob(path, { token });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -30,17 +38,37 @@ export function BtnExportarIva({ token }: BtnExportarIvaProps) {
   }
 
   return (
-    <div>
-      <ABtn
-        variant="ghost"
-        size="sm"
-        onClick={handleExportar}
-        disabled={cargando}
-        className="text-muted hover:text-accent px-0"
-      >
-        {cargando ? 'Generando...' : '↓ Exportar IVA Ventas (.xlsx)'}
-      </ABtn>
-      {error && <p className="font-sans text-xs text-err mt-1">{error}</p>}
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-wrap items-end gap-2 justify-end">
+        <label className="font-sans text-xs text-muted">
+          Desde
+          <input
+            type="date"
+            value={desde}
+            onChange={(e) => setDesde(e.target.value)}
+            className="block mt-1 border border-rule rounded-[2px] px-2 py-1 font-sans text-xs text-ink bg-card"
+          />
+        </label>
+        <label className="font-sans text-xs text-muted">
+          Hasta
+          <input
+            type="date"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+            className="block mt-1 border border-rule rounded-[2px] px-2 py-1 font-sans text-xs text-ink bg-card"
+          />
+        </label>
+        <ABtn
+          variant="ghost"
+          size="sm"
+          onClick={handleExportar}
+          disabled={cargando}
+          className="text-muted hover:text-accent px-0"
+        >
+          {cargando ? 'Generando...' : '↓ Exportar IVA Ventas (.xlsx)'}
+        </ABtn>
+      </div>
+      {error && <p className="font-sans text-xs text-err">{error}</p>}
     </div>
   );
 }

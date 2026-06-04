@@ -8,7 +8,7 @@ export const EstadoVentaSchema = z.enum(['facturado', 'pendiente_facturacion', '
 export const ItemVentaSchema = z.object({
   producto_id: z.string().uuid().optional(),
   descripcion: z.string().min(1, 'La descripción es requerida').max(200),
-  cantidad: z.coerce.number().positive('La cantidad debe ser mayor a 0'),
+  cantidad: z.coerce.number().int('La cantidad debe ser un número entero').positive('La cantidad debe ser mayor a 0'),
   precio_unitario: MontoSchema,
 });
 
@@ -25,6 +25,13 @@ export const CreateVentaSchema = z
     (data) => data.metodo_pago !== 'cuenta_corriente' || !!data.cliente_id,
     {
       message: 'Seleccioná un cliente para registrar una venta en cuenta corriente.',
+      path: ['cliente_id'],
+    },
+  )
+  .refine(
+    (data) => data.tipo !== 'factura_a' || !!data.cliente_id,
+    {
+      message: 'Seleccioná un cliente con CUIT para emitir Factura A.',
       path: ['cliente_id'],
     },
   );

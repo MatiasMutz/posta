@@ -160,6 +160,60 @@ describe('VentasService.create — validaciones', () => {
       }),
     ).rejects.toThrow(BadRequestException);
   });
+
+  it('lanza BadRequestException si el producto no existe', async () => {
+    const svc = crearServicio();
+    mockWithTenant.mockImplementation((_id: string, cb: (tx: typeof mockTx) => unknown) => {
+      mockTx.returning.mockResolvedValueOnce([{ ...fakeVenta, tipo: 'factura_b' }]);
+      mockTx.limit.mockResolvedValueOnce([]); // producto no encontrado
+      return cb(mockTx);
+    });
+
+    await expect(
+      svc.create('t1', 'u1', {
+        tipo: 'factura_b',
+        metodo_pago: 'efectivo',
+        descuento: '0',
+        items: [{ producto_id: 'prod-inexistente', descripcion: 'X', cantidad: 1, precio_unitario: '100.00' }],
+      }),
+    ).rejects.toThrow(/Producto no encontrado/);
+  });
+
+  it('lanza BadRequestException si el producto está inactivo', async () => {
+    const svc = crearServicio();
+    mockWithTenant.mockImplementation((_id: string, cb: (tx: typeof mockTx) => unknown) => {
+      mockTx.returning.mockResolvedValueOnce([{ ...fakeVenta, tipo: 'factura_b' }]);
+      mockTx.limit.mockResolvedValueOnce([{ id: 'prod-1', nombre: 'Inactivo', stock_actual: 10, activo: false }]);
+      return cb(mockTx);
+    });
+
+    await expect(
+      svc.create('t1', 'u1', {
+        tipo: 'factura_b',
+        metodo_pago: 'efectivo',
+        descuento: '0',
+        items: [{ producto_id: 'prod-1', descripcion: 'X', cantidad: 1, precio_unitario: '100.00' }],
+      }),
+    ).rejects.toThrow(/no está activo/);
+  });
+
+  it('lanza BadRequestException para Factura A sin CUIT en el cliente', async () => {
+    const svc = crearServicio();
+    mockWithTenant.mockImplementation((_id: string, cb: (tx: typeof mockTx) => unknown) => {
+      mockTx.limit.mockResolvedValueOnce([{ id: 'cli-1', cuit: null }]);
+      return cb(mockTx);
+    });
+
+    await expect(
+      svc.create('t1', 'u1', {
+        tipo: 'factura_a',
+        metodo_pago: 'efectivo',
+        cliente_id: 'cli-1',
+        descuento: '0',
+        items: [{ descripcion: 'X', cantidad: 1, precio_unitario: '100.00' }],
+      }),
+    ).rejects.toThrow(/CUIT/);
+  });
 });
 
 // ── VentasService.create — flujo AFIP ─────────────────────────────────────
@@ -303,6 +357,27 @@ describe('VentasService.exportarIvaVentas', () => {
     const svc = crearServicio();
     const buffer = await svc.exportarIvaVentas('t1', {});
     expect(buffer).toBeInstanceOf(Buffer);
+    expect(buffer.length).toBeGreaterThan(0);
+  });
+
+  it('solo incluye ventas en estado facturado (query con filtro)', async () => {
+    mockWithTenant.mockImplementationOnce(async (_id, cb) => {
+      // Simula que la query devuelve solo facturadas
+      const rows = [
+        { ...fakeVenta, estado: 'facturado', cae: 'CAE-OK' },
+      ];
+      return cb({
+        select: () => ({
+          from: () => ({
+            where: () => ({
+              orderBy: () => Promise.resolve(rows),
+            }),
+          }),
+        }),
+      });
+    });
+    const svc = crearServicio();
+    const buffer = await svc.exportarIvaVentas('t1', {});
     expect(buffer.length).toBeGreaterThan(0);
   });
 });

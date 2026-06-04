@@ -146,32 +146,40 @@ export class ImportsService implements OnModuleInit {
     }
 
     const perfil = job.tipo === 'inventario' ? INVENTARIO_CAMPOS : CLIENTES_CAMPOS;
-    const { validas, invalidas } = this.procesarFilas(correcciones.map(c => c.datos), perfil);
+    const validas: Record<string, unknown>[] = [];
+    const erroresResidual: FilaConError[] = [];
+
+    for (const correccion of correcciones) {
+      const { validas: filaValida, invalidas } = this.procesarFilas([correccion.datos], perfil);
+      if (filaValida.length > 0) {
+        validas.push(filaValida[0]);
+      }
+      if (invalidas.length > 0) {
+        erroresResidual.push({
+          numero: correccion.numero,
+          datos: correccion.datos,
+          problemas: invalidas[0].problemas,
+        });
+      }
+    }
 
     if (validas.length > 0) {
       await this.guardarFilas(tenantId, userId, job.tipo, validas);
     }
 
-    // Actualizar errores residuales en el job
-    const erroresResidual = invalidas.map((f, i) => ({
-      numero: correcciones[i]?.numero ?? i + 1,
-      datos: correcciones[i]?.datos ?? {},
-      problemas: f.problemas,
-    })) as FilaConError[];
-
     await withTenant(tenantId, async (tx) =>
       tx.update(importJobs)
         .set({
           filas_ok: (job.filas_ok ?? 0) + validas.length,
-          filas_error: invalidas.length,
+          filas_error: erroresResidual.length,
           errores: erroresResidual.length > 0 ? erroresResidual : null,
-          estado: invalidas.length === 0 ? 'completado' : job.estado,
+          estado: erroresResidual.length === 0 ? 'completado' : job.estado,
           updated_at: new Date(),
         })
         .where(eq(importJobs.id, jobId)),
     );
 
-    return { importados: validas.length, erroresResidual: invalidas.length };
+    return { importados: validas.length, erroresResidual: erroresResidual.length };
   }
 
   // ── Helpers internos ─────────────────────────────────────────

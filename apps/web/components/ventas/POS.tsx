@@ -96,6 +96,7 @@ export function POS({ productos, clientes, token, buscarInicial = '' }: POSProps
   );
 
   const ctaCteError = metodoPago === 'cuenta_corriente' && !clienteId;
+  const facturaAError = tipo === 'factura_a' && !clienteId;
 
   async function confirmar() {
     if (carrito.length === 0) return;
@@ -248,7 +249,7 @@ export function POS({ productos, clientes, token, buscarInicial = '' }: POSProps
           {/* Cliente */}
           <div>
             <label className="block font-mono text-[10px] uppercase tracking-wider text-muted mb-1">
-              Cliente {metodoPago === 'cuenta_corriente' && <span className="text-err">*</span>}
+              Cliente {(metodoPago === 'cuenta_corriente' || tipo === 'factura_a') && <span className="text-err">*</span>}
             </label>
             <select
               value={clienteId}
@@ -286,9 +287,11 @@ export function POS({ productos, clientes, token, buscarInicial = '' }: POSProps
             </div>
           </div>
 
-          {(error || ctaCteError) && (
+          {(error || ctaCteError || facturaAError) && (
             <p className="font-sans text-xs text-err">
-              {error || 'Seleccioná un cliente para usar cuenta corriente.'}
+              {error || (ctaCteError
+                ? 'Seleccioná un cliente para usar cuenta corriente.'
+                : 'Seleccioná un cliente con CUIT para Factura A.')}
             </p>
           )}
 
@@ -296,7 +299,7 @@ export function POS({ productos, clientes, token, buscarInicial = '' }: POSProps
             variant="primary"
             className="w-full"
             onClick={confirmar}
-            disabled={carrito.length === 0 || enviando || ctaCteError}
+            disabled={carrito.length === 0 || enviando || ctaCteError || facturaAError}
           >
             {enviando ? 'Procesando...' : 'Confirmar venta'}
           </ABtn>

@@ -61,7 +61,25 @@ export class VentasService {
     const esFiscal = dto.tipo === 'factura_b' || dto.tipo === 'factura_a';
     const estadoInicial = esFiscal ? 'pendiente_facturacion' : dto.tipo;
 
+    let clienteCuit: string | null = null;
+
     const venta = await withTenant(tenantId, async (tx) => {
+      if (dto.tipo === 'factura_a') {
+        if (!dto.cliente_id) {
+          throw new BadRequestException('Seleccioná un cliente con CUIT para emitir Factura A.');
+        }
+        const [clienteFacturaA] = await tx.select().from(clientes)
+          .where(eq(clientes.id, dto.cliente_id))
+          .limit(1);
+        if (!clienteFacturaA) {
+          throw new BadRequestException('Cliente no encontrado.');
+        }
+        if (!clienteFacturaA.cuit) {
+          throw new BadRequestException('Factura A requiere un cliente con CUIT cargado.');
+        }
+        clienteCuit = clienteFacturaA.cuit;
+      }
+
       const [nuevaVenta] = await tx.insert(ventas).values({
         tenant_id: tenantId,
         cliente_id: dto.cliente_id ?? null,
@@ -92,32 +110,41 @@ export class VentasService {
             .where(eq(productos.id, item.producto_id))
             .limit(1);
 
-          if (producto) {
-            const stockAnterior = producto.stock_actual;
-            const cantidadEntero = Math.round(item.cantidad);
-
-            if (stockAnterior < cantidadEntero) {
-              throw new BadRequestException(
-                `Stock insuficiente para "${producto.nombre}". Disponible: ${stockAnterior}, solicitado: ${cantidadEntero}.`,
-              );
-            }
-
-            const stockPosterior = stockAnterior - cantidadEntero;
-            await tx.update(productos)
-              .set({ stock_actual: stockPosterior })
-              .where(eq(productos.id, item.producto_id));
-
-            await tx.insert(movimientosStock).values({
-              tenant_id: tenantId,
-              producto_id: item.producto_id,
-              tipo: 'salida',
-              cantidad: cantidadEntero,
-              stock_anterior: stockAnterior,
-              stock_posterior: stockPosterior,
-              motivo: `Venta #${nuevaVenta.id.slice(0, 8)}`,
-              created_by: userId,
-            });
+          if (!producto) {
+            throw new BadRequestException(
+              `Producto no encontrado para "${item.descripcion}".`,
+            );
           }
+          if (!producto.activo) {
+            throw new BadRequestException(
+              `El producto "${producto.nombre}" no está activo y no se puede vender.`,
+            );
+          }
+
+          const stockAnterior = producto.stock_actual;
+          const cantidadEntero = item.cantidad;
+
+          if (stockAnterior < cantidadEntero) {
+            throw new BadRequestException(
+              `Stock insuficiente para "${producto.nombre}". Disponible: ${stockAnterior}, solicitado: ${cantidadEntero}.`,
+            );
+          }
+
+          const stockPosterior = stockAnterior - cantidadEntero;
+          await tx.update(productos)
+            .set({ stock_actual: stockPosterior })
+            .where(eq(productos.id, item.producto_id));
+
+          await tx.insert(movimientosStock).values({
+            tenant_id: tenantId,
+            producto_id: item.producto_id,
+            tipo: 'salida',
+            cantidad: cantidadEntero,
+            stock_anterior: stockAnterior,
+            stock_posterior: stockPosterior,
+            motivo: `Venta #${nuevaVenta.id.slice(0, 8)}`,
+            created_by: userId,
+          });
         }
       }
 
@@ -135,7 +162,7 @@ export class VentasService {
     });
 
     if (esFiscal) {
-      await this.intentarFacturacionInicial(tenantId, venta.id, dto, total);
+      await this.intentarFacturacionInicial(tenantId, venta.id, dto, total, clienteCuit);
     }
 
     return this.findOne(tenantId, venta.id);
@@ -146,6 +173,7 @@ export class VentasService {
     ventaId: string,
     dto: CreateVentaDto,
     total: string,
+    clienteCuit: string | null,
   ) {
     const itemsPayload = dto.items.map((i) => ({
       descripcion: i.descripcion,
@@ -162,6 +190,7 @@ export class VentasService {
         total,
         itemsPayload,
         1,
+        clienteCuit,
       );
     } catch {
       this.logger.warn(`AFIP falló para venta ${ventaId}. Encolando reintento.`);
@@ -190,12 +219,13 @@ export class VentasService {
       subtotal: string;
     }>,
     intentosFacturacion: number,
+    clienteCuit: string | null = null,
   ) {
     const resultado = await this.facturador.emitirComprobante({
       ventaId,
       tipo,
       total,
-      clienteCuit: null,
+      clienteCuit,
       items,
     });
 
@@ -241,6 +271,16 @@ export class VentasService {
       tx.select().from(itemsVenta).where(eq(itemsVenta.venta_id, ventaId)),
     );
 
+    let clienteCuit: string | null = null;
+    if (venta.tipo === 'factura_a' && venta.cliente_id) {
+      const [cliente] = await withTenant(tenantId, (tx) =>
+        tx.select({ cuit: clientes.cuit }).from(clientes)
+          .where(eq(clientes.id, venta.cliente_id!))
+          .limit(1),
+      );
+      clienteCuit = cliente?.cuit ?? null;
+    }
+
     const itemsPayload = items.map((i) => ({
       descripcion: i.descripcion,
       cantidad: Number(i.cantidad),
@@ -258,6 +298,7 @@ export class VentasService {
         venta.total,
         itemsPayload,
         siguienteIntento,
+        clienteCuit,
       );
       return { facturado: true, cae: resultado.cae };
     } catch {
@@ -325,6 +366,7 @@ export class VentasService {
     const rows = await withTenant(tenantId, async (tx) => {
       const conditions = [
         inArray(ventas.tipo, ['factura_b', 'factura_a']),
+        eq(ventas.estado, 'facturado'),
       ];
       if (query.desde) conditions.push(gte(ventas.created_at, new Date(query.desde)));
       if (query.hasta) conditions.push(lte(ventas.created_at, new Date(`${query.hasta}T23:59:59Z`)));

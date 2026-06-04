@@ -8,6 +8,8 @@ test.describe('Exportación IVA Ventas', () => {
     await page.goto('/ventas/historial');
     await expect(page.getByRole('heading', { name: 'Historial de ventas' })).toBeVisible();
     await expect(page.getByText('Exportar IVA Ventas (.xlsx)')).toBeVisible();
+    await expect(page.getByLabel('Desde')).toBeVisible();
+    await expect(page.getByLabel('Hasta')).toBeVisible();
   });
 
   test('descarga archivo al exportar', async ({ page }) => {

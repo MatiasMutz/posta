@@ -90,4 +90,27 @@ describe('validarVentaPos', () => {
     });
     expect(result.ok).toBe(true);
   });
+
+  it('rechaza Factura A sin cliente', () => {
+    const result = validarVentaPos({
+      tipo: 'factura_a',
+      metodoPago: 'efectivo',
+      clienteId: '',
+      items: [itemBase],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errores.some((e) => e.campo === 'cliente_id')).toBe(true);
+    }
+  });
+
+  it('rechaza cantidad decimal', () => {
+    const result = validarVentaPos({
+      tipo: 'factura_b',
+      metodoPago: 'efectivo',
+      clienteId: '',
+      items: [{ ...itemBase, cantidad: 1.5 }],
+    });
+    expect(result.ok).toBe(false);
+  });
 });

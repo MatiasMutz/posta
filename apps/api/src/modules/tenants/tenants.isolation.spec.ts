@@ -116,4 +116,32 @@ describe.skipIf(skip)('Aislamiento RLS: tenants', () => {
       .where(eq(usuariosTenant.id, membershipA.id));
     expect(stillThere).toHaveLength(1);
   });
+
+  it('sin contexto de tenant, usuarios_tenant devuelve 0 filas (fail-safe)', async () => {
+    const rows = await db.transaction(async (tx) => {
+      await tx.execute(sql.raw('SET LOCAL ROLE authenticated'));
+      return tx.select().from(usuariosTenant);
+    });
+    expect(rows.filter((r) => r.tenant_id === tenantAId || r.tenant_id === tenantBId)).toHaveLength(0);
+  });
+
+  it('tenant A puede actualizar rol de un miembro de su tenant', async () => {
+    const [vendedor] = await db.insert(usuariosTenant).values({
+      tenant_id: tenantAId,
+      user_id: '00000000-0000-0000-0000-000000000003',
+      rol: 'vendedor',
+    }).returning();
+
+    await withTenantCtx(tenantAId, (d) =>
+      d.update(usuariosTenant)
+        .set({ rol: 'contador' })
+        .where(eq(usuariosTenant.id, vendedor.id)),
+    );
+
+    const [updated] = await db.select().from(usuariosTenant)
+      .where(eq(usuariosTenant.id, vendedor.id));
+    expect(updated.rol).toBe('contador');
+
+    await db.delete(usuariosTenant).where(eq(usuariosTenant.id, vendedor.id));
+  });
 });
