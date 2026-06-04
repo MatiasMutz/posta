@@ -7,6 +7,13 @@ interface ComprobanteHttpResponse {
   numero_comprobante: number;
 }
 
+/** Respuesta mínima de `fetch` — evita depender de lib DOM/@types/node en CI/Vercel. */
+interface FetchJsonResponse {
+  ok: boolean;
+  status: number;
+  json(): Promise<unknown>;
+}
+
 /**
  * Adaptador HTTP al microservicio AFIP (services/afip/).
  * Activar con AFIP_SERVICE_URL=http://localhost:8000
@@ -29,7 +36,7 @@ export class FacturadorHttp implements FacturadorElectronico {
     const timeout = setTimeout(() => controller.abort(), 30_000);
 
     try {
-      const res = await fetch(`${this.baseUrl}/v1/comprobantes`, {
+      const res = (await fetch(`${this.baseUrl}/v1/comprobantes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -39,7 +46,7 @@ export class FacturadorHttp implements FacturadorElectronico {
           cuit_emisor: venta.clienteCuit ?? undefined,
         }),
         signal: controller.signal,
-      });
+      })) as FetchJsonResponse;
 
       if (!res.ok) {
         this.logger.warn(`AFIP HTTP ${res.status} para venta ${venta.ventaId}`);
