@@ -19,6 +19,11 @@ test.describe('Compra en cuenta corriente', () => {
 
     await page.goto('/proveedores');
     await page.getByText(nombreProv).click();
-    await expect(page.getByText(/1\.000,00|1000\.00/)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: nombreProv })).toBeVisible();
+
+    const saldoAcreedor = page.locator('.bg-card').filter({
+      has: page.getByText('Saldo acreedor', { exact: true }),
+    });
+    await expect(saldoAcreedor).toContainText('1.000', { timeout: 10_000 });
   });
 });
