@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { NavFlotante } from '@/components/nav/NavFlotante';
+import { esPositivo } from '@/lib/money';
 import { APrice, APill } from '@/components/ui';
 import { BtnReintentarAfip } from '@/components/ventas/BtnReintentarAfip';
 
@@ -130,7 +131,7 @@ export default async function VentaDetallePage({
               <span>Subtotal</span>
               <APrice value={venta.subtotal} className="text-sm" />
             </div>
-            {parseFloat(venta.descuento) > 0 && (
+            {esPositivo(venta.descuento) && (
               <div className="flex justify-between font-sans text-sm text-muted">
                 <span>Descuento</span>
                 <span className="text-err">−<APrice value={venta.descuento} className="text-sm" /></span>
