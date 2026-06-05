@@ -64,5 +64,9 @@ export function redirectPorRol(pathname: string, rol: string | undefined): strin
     }
   }
 
+  if (pathname.startsWith('/caja')) {
+    if (r === 'vendedor') return '/ventas';
+  }
+
   return null;
 }

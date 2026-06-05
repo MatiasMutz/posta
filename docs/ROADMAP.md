@@ -8,7 +8,7 @@
 
 ## Estado según código (revisión implementación)
 
-**Veredicto:** las fases **0 a 5 están listas para dar por cerradas en el roadmap** y **arrancar Fase 6**, si el criterio es “vertical completa con tests” (`CLAUDE.md` §4). Pendiente de visión amplia: onboarding guiado, dashboard, AFIP real, **pagos** de cta. cte. (Fase 6).
+**Veredicto:** las fases **0 a 6 están listas para dar por cerradas en el roadmap** y **arrancar Fase 7**, si el criterio es “vertical completa con tests” (`CLAUDE.md` §4). Pendiente de visión amplia: onboarding guiado, dashboard, AFIP real.
 
 | Fase | ¿Implementado en código? | Notas |
 |------|--------------------------|--------|
@@ -17,7 +17,8 @@
 | 2 | Sí | CRUD, paginación, búsqueda, `solo_bajo_stock`, movimientos, soft-delete, SKU y `codigo_barras`, E2E inventario. |
 | 3 | Sí | BullMQ, Storage, perfiles inventario+clientes, Levenshtein, reintento, 3 E2E import. Sin wizard de primera vez (ver exclusiones). |
 | 4 | Sí | POS, clientes+saldo deudor al vender, factura A/B/**C**/ticket, remito/presupuesto, historial, export IVA, mock AFIP+cola, E2E ventas/AFIP. Sin cobro de deuda (Fase 6). |
-| 5 | Sí | Proveedores+saldo acreedor, compras/gastos, stock/costo en compra con producto, export IVA Compras, import proveedores, E2E compras. Pagos a proveedor → Fase 6. |
+| 5 | Sí | Proveedores+saldo acreedor, compras/gastos, stock/costo en compra con producto, export IVA Compras, import proveedores, E2E compras. |
+| 6 | Sí | Caja chica (apertura/cierre), movimientos, flujo de caja, pagos cliente/proveedor, E2E tesorería. |
 
 **Deuda menor (no bloquea Fase 6):** E2E dedicados a factura C/ticket; test de integración Storage con JWT real; stress import 5k filas documentado; cobertura mínima en CI; migrar `next lint` → ESLint CLI.
 
@@ -121,11 +122,15 @@ Objetivo: repo listo para desarrollar con disciplina de producción antes de esc
 
 **Exclusiones (Fase 6):** pagos/cancelación deuda a proveedores y clientes.
 
-## Fase 6 — Tesorería y Finanzas ⏳ siguiente
+## Fase 6 — Tesorería y Finanzas ✅
 
-- Caja chica; flujo de caja; **pagos de cuenta corriente activa**
+- Caja chica: apertura/cierre diario, ingresos/egresos manuales
+- Flujo de caja: facturación bruta vs dinero neto (costo mercadería, IVA estimado)
+- Pagos de cuenta corriente activa (clientes) y pasiva (proveedores)
+- Migración `0012`; módulo `apps/api/src/modules/tesoreria/`
+- E2E: `tesoreria/caja-pagos`
 
-## Fase 7 — Dashboard y vista Contador
+## Fase 7 — Dashboard y vista Contador ⏳ siguiente
 
 - KPIs dueño; vista contador consolidada
 

@@ -66,5 +66,7 @@ apply_sql_if_needed "20250101000007" "supabase/migrations/20250101000007_invitac
 apply_sql_if_needed "20250101000008" "supabase/migrations/20250101000008_auditoria_clientes.sql"
 apply_sql_if_needed "20250101000009" "supabase/migrations/20250101000009_productos_auditoria_triggers.sql"
 apply_sql_if_needed "20250101000010" "supabase/migrations/20250101000010_usuarios_tenant_grants.sql"
+apply_sql_if_needed "20250101000011" "supabase/migrations/20250101000011_compras_proveedores.sql"
+apply_sql_if_needed "20250101000012" "supabase/migrations/20250101000012_tesoreria.sql"
 echo "Migraciones al día:"
 psql "$DB_URL" -c "SELECT version FROM supabase_migrations.schema_migrations ORDER BY version;"

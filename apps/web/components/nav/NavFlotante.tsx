@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { href: '/clientes', label: 'Clientes', icon: '◎', roles: ['dueno', 'contador'] },
   { href: '/proveedores', label: 'Proveedores', icon: '◇', roles: ['dueno', 'contador'] },
   { href: '/compras/historial', label: 'Compras', icon: '⊟', roles: ['dueno', 'contador'] },
+  { href: '/caja', label: 'Caja', icon: '◫', roles: ['dueno', 'contador'] },
   { href: '/ventas/historial', label: 'Historial', icon: '≡', roles: ['dueno', 'contador'] },
   { href: '/importar', label: 'Importar', icon: '↑', roles: ['dueno'] },
   { href: '/configuracion/equipo', label: 'Equipo', icon: '◈', roles: ['dueno'] },

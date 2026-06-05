@@ -20,4 +20,4 @@ Responsabilidades: CRUD de clientes, saldo deudor (cuenta corriente activa).
 
 ## Cuenta corriente
 
-El `saldo_deudor` en la tabla `clientes` representa lo que el cliente nos debe. Se incrementa cuando se hace una venta con `metodo_pago = 'cuenta_corriente'`. Las cancelaciones (pagos del cliente) se implementarán en Fase 6 (Tesorería).
+El `saldo_deudor` en la tabla `clientes` representa lo que el cliente nos debe. Se incrementa cuando se hace una venta con `metodo_pago = 'cuenta_corriente'`. Las cancelaciones (pagos del cliente) se registran en `PagosService.registrarPagoCliente` (módulo tesorería).

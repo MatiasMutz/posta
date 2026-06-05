@@ -45,4 +45,10 @@ describe('redirectPorRol', () => {
     expect(redirectPorRol('/proveedores/nuevo', 'contador')).toBe('/proveedores');
     expect(redirectPorRol('/proveedores', 'contador')).toBeNull();
   });
+
+  it('bloquea caja al vendedor', () => {
+    expect(redirectPorRol('/caja', 'vendedor')).toBe('/ventas');
+    expect(redirectPorRol('/caja', 'dueno')).toBeNull();
+    expect(redirectPorRol('/caja', 'contador')).toBeNull();
+  });
 });

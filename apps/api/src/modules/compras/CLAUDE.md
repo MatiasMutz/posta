@@ -30,6 +30,6 @@ Responsabilidades: CRUD de proveedores, registro de compras y gastos, saldo acre
 
 Solo `factura_a`, `factura_b`, `ticket`. IVA: `total × 21/121`.
 
-## Fase 6 (fuera de alcance)
+## Pagos a proveedores
 
-Pagos a proveedores (bajar `saldo_acreedor`), conciliación de cta. cte. pasiva.
+Los pagos que bajan `saldo_acreedor` se registran en `PagosService.registrarPagoProveedor` (módulo tesorería).
