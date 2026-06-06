@@ -74,10 +74,27 @@ test.describe('Tesorería — caja y pagos', () => {
     });
     await seccionCobro.locator('select').nth(1).selectOption(clienteId);
     await page.getByLabel('Monto del cobro').fill('200.00');
-    await page.getByRole('button', { name: 'Registrar cobro' }).click();
+    await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/tesoreria/pagos/cliente')
+          && r.request().method() === 'POST'
+          && r.ok(),
+        { timeout: 15_000 },
+      ),
+      page.getByRole('button', { name: 'Registrar cobro' }).click(),
+    ]);
+    // PanelCaja hace router.refresh() tras el cobro; esperar señal en UI antes de salir de /caja
+    await expect(page.getByLabel('Monto del cobro')).toHaveValue('');
+    await expect(
+      page.getByRole('row').filter({ hasText: `Cobro a ${nombreCliente}` }),
+    ).toBeVisible({ timeout: 15_000 });
 
-    await page.goto(`/clientes/${clienteId}`);
-    await expect(page.getByRole('heading', { name: nombreCliente })).toBeVisible();
+    // router.refresh() puede re-disparar /caja después de load; toPass reintenta el goto
+    await expect(async () => {
+      await page.goto(`/clientes/${clienteId}`, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('heading', { name: nombreCliente })).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 20_000 });
+
     const saldoDeudor = page.locator('div.text-right').filter({ hasText: 'Saldo deudor' });
     await expect(saldoDeudor).toContainText('0', { timeout: 10_000 });
   });
