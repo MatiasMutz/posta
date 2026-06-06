@@ -20,6 +20,8 @@ function LoginForm() {
   useEffect(() => {
     const urlError = searchParams.get('error');
     if (urlError) setError(urlError);
+    const tab = searchParams.get('tab');
+    if (tab === 'registro') setTab('registro');
   }, [searchParams]);
 
   async function handleLogin(e: React.FormEvent) {

@@ -105,6 +105,14 @@ describe('ProductosService.findOne', () => {
     expect(result.id).toBe('prod-1');
   });
 
+  it('oculta costo para vendedor', async () => {
+    mockTx.limit.mockResolvedValueOnce([fakeProducto]);
+    const svc = new ProductosService();
+    const result = await svc.findOne('tenant-1', 'prod-1', 'vendedor');
+    expect(result).not.toHaveProperty('costo');
+    expect(result).toHaveProperty('precio');
+  });
+
   it('lanza NotFoundException si no existe', async () => {
     mockTx.limit.mockResolvedValueOnce([]);
     const svc = new ProductosService();
