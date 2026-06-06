@@ -40,8 +40,8 @@ test.describe('Roles — contador', () => {
     await expect(page.getByRole('heading', { name: 'Clientes' })).toBeVisible({ timeout: 10_000 });
   });
 
-  test('no accede a inventario (redirige a historial)', async ({ page }) => {
+  test('no accede a inventario (redirige a contador)', async ({ page }) => {
     await page.goto('/inventario');
-    await expect(page.getByRole('heading', { name: 'Historial de ventas' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'Libro IVA Ventas' })).toBeVisible({ timeout: 10_000 });
   });
 });

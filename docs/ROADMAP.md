@@ -8,7 +8,7 @@
 
 ## Estado según código (revisión implementación)
 
-**Veredicto:** las fases **0 a 6 están listas para dar por cerradas en el roadmap** y **arrancar Fase 7**, si el criterio es “vertical completa con tests” (`CLAUDE.md` §4). Pendiente de visión amplia: onboarding guiado, dashboard, AFIP real.
+**Veredicto:** las fases **0 a 7 están listas para dar por cerradas en el roadmap**. Pendiente de visión amplia: onboarding guiado, AFIP real.
 
 | Fase | ¿Implementado en código? | Notas |
 |------|--------------------------|--------|
@@ -130,9 +130,12 @@ Objetivo: repo listo para desarrollar con disciplina de producción antes de esc
 - Migración `0012`; módulo `apps/api/src/modules/tesoreria/`
 - E2E: `tesoreria/caja-pagos`
 
-## Fase 7 — Dashboard y vista Contador ⏳ siguiente
+## Fase 7 — Dashboard y vista Contador ✅
 
-- KPIs dueño; vista contador consolidada
+- **Dashboard dueño** (`/dashboard`): KPIs ventas día/mes, caja, cuentas a cobrar, ganancia estimada, gráfico SVG 7 días, top productos, horarios pico, alertas, accesos rápidos.
+- **Vista contador** (`/contador`): resumen fiscal IVA ventas/compras, comprobantes paginados, export IVA, sin costos/ganancias.
+- API: `GET /dashboard`, `GET /contador/resumen`, `GET /contador/comprobantes`.
+- Tests: unit (`iva`, `contador.service`, `dashboard.access`), web (`auth`, `DashboardWidgets`), E2E (`dashboard/*`, roles actualizados).
 
 ---
 

@@ -274,9 +274,9 @@ async function saveStorageState(
   rol: 'dueno' | 'vendedor' | 'contador',
 ) {
   const expectations = {
-    dueno: { heading: /Inventario/i },
+    dueno: { heading: /Buenos días|Buenas tardes|Buenas noches/i },
     vendedor: { heading: /Punto de venta/i },
-    contador: { heading: /Historial de ventas/i },
+    contador: { heading: /Libro IVA Ventas/i },
   } as const;
   const { heading } = expectations[rol];
 

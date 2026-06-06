@@ -15,6 +15,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { href: '/dashboard', label: 'Panel', icon: '▦', roles: ['dueno'] },
+  { href: '/contador', label: 'Contador', icon: '⊡', roles: ['dueno', 'contador'] },
   { href: '/ventas', label: 'Ventas', icon: '⊕', roles: ['dueno', 'vendedor'] },
   { href: '/inventario', label: 'Inventario', icon: '▣', roles: ['dueno', 'vendedor'] },
   { href: '/clientes', label: 'Clientes', icon: '◎', roles: ['dueno', 'contador'] },

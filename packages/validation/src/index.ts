@@ -13,3 +13,4 @@ export * from './ventas';
 export * from './proveedores';
 export * from './compras';
 export * from './tesoreria';
+export * from './dashboard';

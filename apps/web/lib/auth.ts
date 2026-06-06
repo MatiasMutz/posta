@@ -6,9 +6,9 @@ export function rutaInicioPorRol(rol: string | undefined): string {
     case 'vendedor':
       return '/ventas';
     case 'contador':
-      return '/ventas/historial';
+      return '/contador';
     default:
-      return '/inventario';
+      return '/dashboard';
   }
 }
 
@@ -41,8 +41,16 @@ export function redirectPorRol(pathname: string, rol: string | undefined): strin
     if (r !== 'dueno' && esRutaEscrituraClientes(pathname)) return '/clientes';
   }
 
+  if (pathname.startsWith('/dashboard')) {
+    if (r !== 'dueno') return rutaInicioPorRol(r);
+  }
+
+  if (pathname.startsWith('/contador')) {
+    if (r === 'vendedor') return '/ventas';
+  }
+
   if (pathname.startsWith('/inventario')) {
-    if (r === 'contador') return '/ventas/historial';
+    if (r === 'contador') return rutaInicioPorRol(r);
     if (r === 'vendedor' && (esRutaMovimientosInventario(pathname) || esRutaEscrituraInventario(pathname))) {
       return '/inventario';
     }
@@ -54,7 +62,7 @@ export function redirectPorRol(pathname: string, rol: string | undefined): strin
   }
 
   if (pathname === '/ventas' && r === 'contador') {
-    return '/ventas/historial';
+    return '/contador';
   }
 
   if (pathname.startsWith('/proveedores') || pathname.startsWith('/compras')) {

@@ -22,9 +22,9 @@ function rutaInicioPorRol(rol: string | undefined): string {
     case 'vendedor':
       return '/ventas';
     case 'contador':
-      return '/ventas/historial';
+      return '/contador';
     default:
-      return '/inventario';
+      return '/dashboard';
   }
 }
 
@@ -139,7 +139,7 @@ export async function registrarDuenoRapido(
   };
 
   await establecerSesionDesdeTokens(page, request, access_token, refresh_token);
-  await expect(page.getByRole('heading', { name: 'Inventario' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: /Buenos días|Buenas tardes|Buenas noches/ })).toBeVisible({ timeout: 15_000 });
 }
 
 /** Registro de dueño por UI (solo specs de auth). */
@@ -153,11 +153,11 @@ export async function registrarDuenoPorUI(
   await page.getByLabel('Email').fill(opts.email);
   await page.getByLabel('Contraseña').fill(opts.password);
   await page.locator('form button[type="submit"]').click();
-  await esperarRedirect(page, /\/inventario/);
-  await expect(page.getByRole('heading', { name: 'Inventario' })).toBeVisible({ timeout: 15_000 });
+  await esperarRedirect(page, /\/dashboard/);
+  await expect(page.getByRole('heading', { name: /Buenos días|Buenas tardes|Buenas noches/ })).toBeVisible({ timeout: 15_000 });
 }
 
-/** Login por UI; espera redirect según rol (dueño → inventario por defecto). */
+/** Login por UI; espera redirect según rol (dueño → dashboard por defecto). */
 export async function loginPorUI(
   page: Page,
   opts: { email: string; password: string; destino?: RegExp },
@@ -167,5 +167,5 @@ export async function loginPorUI(
   await page.getByLabel('Email').fill(opts.email);
   await page.getByLabel('Contraseña').fill(opts.password);
   await page.locator('form button[type="submit"]').click();
-  await esperarRedirect(page, opts.destino ?? /\/inventario/);
+  await esperarRedirect(page, opts.destino ?? /\/dashboard/);
 }

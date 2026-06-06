@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { requireSesion } from '@/lib/sesion';
+import { rutaInicioPorRol } from '@/lib/auth';
 import { NavFlotante } from '@/components/nav/NavFlotante';
 import { PollingEstado } from '@/components/importar/PollingEstado';
 
@@ -8,7 +9,7 @@ export default async function ImportarJobPage({ params }: { params: Promise<{ jo
   const sesion = await requireSesion();
   const { rol, accessToken } = sesion;
 
-  if (rol !== 'dueno') redirect('/inventario');
+  if (rol !== 'dueno') redirect(rutaInicioPorRol(rol));
 
   const { jobId } = await params;
 

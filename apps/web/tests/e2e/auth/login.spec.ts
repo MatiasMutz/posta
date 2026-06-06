@@ -6,7 +6,7 @@ import { esperarProductoEnPOS, irAlPOS } from '../helpers/pos-ui';
 test.describe('Auth', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test('registro y login redirigen a inventario', async ({ page }) => {
+  test('registro y login redirigen al dashboard', async ({ page }) => {
     const email = `auth-smoke-${Date.now()}@posta-test.com`;
     const password = 'password123456';
 
@@ -22,8 +22,8 @@ test.describe('Auth', () => {
       sessionStorage.clear();
     });
 
-    await loginPorUI(page, { email, password, destino: /\/inventario/ });
-    await expect(page.getByRole('heading', { name: 'Inventario' })).toBeVisible({ timeout: 15_000 });
+    await loginPorUI(page, { email, password, destino: /\/dashboard/ });
+    await expect(page.getByRole('heading', { name: /Buenos días|Buenas tardes|Buenas noches/ })).toBeVisible({ timeout: 15_000 });
   });
 
   test('login con credenciales inválidas muestra error', async ({ page }) => {
