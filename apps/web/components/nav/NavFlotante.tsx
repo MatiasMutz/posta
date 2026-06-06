@@ -3,7 +3,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { rutaInicioPorRol } from '@/lib/auth';
 import type { Rol } from '@posta/shared-types';
-import { NavPerfilMobile, NavPerfilSidebar, usePerfilUsuario } from './NavPerfil';
+import {
+  NavPerfilMobile,
+  NavPerfilMobileSkeleton,
+  NavPerfilSidebar,
+  NavPerfilSidebarSkeleton,
+  usePerfilUsuario,
+} from './NavPerfil';
+
+/** Ancho fijo del sidebar desktop — evita layout shift al cargar perfil. */
+const SIDEBAR_ANCHO = 'w-48';
 
 interface NavItem {
   href: string;
@@ -13,7 +22,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/dashboard', label: 'Panel', icon: '▦', roles: ['dueno'] },
   { href: '/contador', label: 'Contador', icon: '⊡', roles: ['dueno', 'contador'] },
   { href: '/ventas', label: 'Ventas', icon: '⊕', roles: ['dueno', 'vendedor'] },
   { href: '/inventario', label: 'Inventario', icon: '▣', roles: ['dueno', 'vendedor'] },
@@ -64,18 +72,32 @@ export function NavFlotante() {
   const perfil = usePerfilUsuario();
   const rol = perfil?.rol ?? null;
 
-  const items = navItems.filter((item) => !rol || item.roles.includes(rol));
   const inicioHref = rutaInicioPorRol(rol ?? undefined);
+  const items = rol
+    ? navItems.filter((item) => item.roles.includes(rol) && item.href !== inicioHref)
+    : [];
+  const panelActivo =
+    pathname === inicioHref ||
+    (inicioHref !== '/' && pathname.startsWith(`${inicioHref}/`));
 
   return (
     <>
-      {perfil && <NavPerfilMobile perfil={perfil} />}
+      {perfil ? <NavPerfilMobile perfil={perfil} /> : <NavPerfilMobileSkeleton />}
 
       <nav className="fixed bottom-4 left-4 right-4 md:hidden z-40 pointer-events-none">
         <div
           className="flex items-center justify-around bg-card border border-rule rounded-[2px] px-1 py-2 pointer-events-none"
           style={{ boxShadow: 'var(--shadow)' }}
         >
+          {rol && (
+            <NavLink
+              href={inicioHref}
+              label="Panel"
+              icon="▦"
+              active={panelActivo}
+              compact
+            />
+          )}
           {items.map(({ href, label, icon }) => (
             <NavLink
               key={href}
@@ -86,23 +108,24 @@ export function NavFlotante() {
               compact
             />
           ))}
-          <NavLink
-            href={inicioHref}
-            label="Inicio"
-            icon="◉"
-            active={pathname === inicioHref}
-            compact
-          />
         </div>
       </nav>
 
       <nav className="hidden md:flex fixed left-6 top-1/2 -translate-y-1/2 z-40 flex-col pointer-events-none">
         <div
-          className="bg-card border border-rule rounded-[2px] py-4 px-2 flex flex-col gap-1 max-h-[calc(100vh-3rem)] pointer-events-none"
+          className={`${SIDEBAR_ANCHO} shrink-0 bg-card border border-rule rounded-[2px] py-4 px-2 flex flex-col gap-1 max-h-[calc(100vh-3rem)] pointer-events-none`}
           style={{ boxShadow: 'var(--shadow)' }}
         >
-          <span className="font-serif text-ink text-sm text-center mb-2 px-1">Posta</span>
-          <div className="flex flex-col gap-0.5 overflow-y-auto">
+          <span className="font-serif text-ink text-sm text-center mb-2 px-1 shrink-0">Posta</span>
+          <div className="flex flex-col gap-0.5 overflow-y-auto min-h-0">
+            {rol && (
+              <NavLink
+                href={inicioHref}
+                label="Panel"
+                icon="▦"
+                active={panelActivo}
+              />
+            )}
             {items.map(({ href, label, icon }) => (
               <NavLink
                 key={href}
@@ -112,18 +135,10 @@ export function NavFlotante() {
                 active={pathname.startsWith(href)}
               />
             ))}
-            <NavLink
-              href={inicioHref}
-              label="Inicio"
-              icon="◉"
-              active={pathname === inicioHref}
-            />
           </div>
-          {perfil && (
-            <div className="mt-3 pt-3 border-t border-rule shrink-0 pointer-events-auto">
-              <NavPerfilSidebar perfil={perfil} />
-            </div>
-          )}
+          <div className="mt-3 pt-3 border-t border-rule shrink-0 pointer-events-auto min-h-[5.5rem]">
+            {perfil ? <NavPerfilSidebar perfil={perfil} /> : <NavPerfilSidebarSkeleton />}
+          </div>
         </div>
       </nav>
     </>

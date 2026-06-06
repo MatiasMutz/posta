@@ -2,7 +2,6 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
-import { NavFlotante } from '@/components/nav/NavFlotante';
 import { esPositivo } from '@/lib/money';
 import { APrice, APill } from '@/components/ui';
 import { BtnReintentarAfip } from '@/components/ventas/BtnReintentarAfip';
@@ -75,7 +74,6 @@ export default async function VentaDetallePage({
 
   return (
     <div className="min-h-screen bg-paper pb-24 md:pb-8 md:pl-24">
-      <NavFlotante />
       <div className="max-w-2xl mx-auto px-4 pt-8">
         {/* Migas */}
         <div className="flex items-center gap-2 font-sans text-xs text-muted mb-6">

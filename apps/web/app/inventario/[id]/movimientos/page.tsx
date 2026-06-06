@@ -4,7 +4,6 @@ import { Suspense } from 'react';
 import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { LIMITE_PAGINA_DEFAULT, parsePagina } from '@/lib/paginacion';
-import { NavFlotante } from '@/components/nav/NavFlotante';
 import { FormMovimiento } from '@/components/inventario/FormMovimiento';
 import { APill, APaginacion } from '@/components/ui';
 import type { ApiResponse } from '@posta/shared-types';
@@ -96,7 +95,6 @@ export default async function MovimientosPage({
 
   return (
     <div className="min-h-screen bg-paper pb-24 md:pb-8 md:pl-24">
-      <NavFlotante />
 
       <div className="max-w-4xl mx-auto px-4 pt-8">
         {/* Migas de pan */}

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { LIMITE_PAGINA_DEFAULT, parsePagina } from '@/lib/paginacion';
-import { NavFlotante } from '@/components/nav/NavFlotante';
 import { APrice, APaginacion, ABtn } from '@/components/ui';
 import { esPositivo } from '@/lib/money';
 import type { ApiResponse } from '@posta/shared-types';
@@ -51,7 +50,6 @@ export default async function ClientesPage({
 
   return (
     <div className="min-h-screen bg-paper pb-24 md:pb-8 md:pl-24">
-      <NavFlotante />
       <div className="max-w-5xl mx-auto px-4 pt-8">
         <div className="flex items-center justify-between mb-6">
           <div>

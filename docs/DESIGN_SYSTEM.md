@@ -96,11 +96,21 @@ Radios chicos (2px), sombras cálidas y sutiles (tinte marrón, no gris/negro). 
 
 ## 7. Navegación — el quiebre de patrón
 
-El POC NO usa el sidebar oscuro estático de siempre. La navegación entre módulos es **flotante**, pensada mobile-first como ciudadano de primera clase (no como reducción del desktop). Al implementar:
+El POC NO usa el sidebar oscuro estático de siempre. La navegación entre módulos es **flotante**, pensada mobile-first como ciudadano de primera clase (no como reducción del desktop).
 
-- Mantener el carácter flotante/elevado de la navegación (no anclada como sidebar tradicional).
-- En mobile, la navegación principal entre módulos debe ser cómoda con el pulgar y permitir saltar rápido entre POS, caja e inventario (los más usados en el día a día).
-- Respetar el set exacto de pantallas y su jerarquía tal como quedaron en el POC: dashboard, POS (desktop y móvil), inventario, caja/tesorería, asistente de importación, vista contador.
+Implementación actual (`components/nav/`):
+
+- **`NavShell`** en el layout raíz: el nav **no se desmonta** al cambiar de ruta (evita parpadeos y layout shift).
+- **Desktop:** sidebar fijo `w-48`, flotante a la izquierda; **mobile:** barra inferior.
+- **Panel** (icono ▦) es el **primer ítem** y lleva al inicio según rol (dashboard / POS / vista contador). Si coincide con otro ítem del menú, no se duplica.
+- Sección de perfil + cerrar sesión: altura reservada desde el primer render; botón logout con hover `err-soft` + borde.
+- Ítems filtrados por rol (`dueno`, `vendedor`, `contador`); ver `NavFlotante.tsx`.
+
+Reglas de diseño:
+
+- Mantener el carácter flotante/elevado (no sidebar tradicional anclado a pantalla completa).
+- En mobile, acceso rápido con el pulgar a POS, caja e inventario.
+- Pantallas del producto: dashboard, POS, inventario, clientes, proveedores, compras, caja, importación, vista contador, equipo.
 
 ---
 
@@ -113,6 +123,6 @@ El POC NO usa el sidebar oscuro estático de siempre. La navegación entre módu
 
 ---
 
-## 8. Referencia
+## 9. Referencia
 
-- En la carpeta `Referencia Diseño UI` se encuentra la referencia del diseño UI aprobado. Puedes usar playwright para verificar que el diseño se está aplicando correctamente.
+- En la carpeta `Referencia Diseño UI` se encuentra la referencia del diseño UI aprobado. Puedes usar Playwright para verificar que el diseño se está aplicando correctamente.

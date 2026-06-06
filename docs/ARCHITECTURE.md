@@ -91,7 +91,8 @@ posta/
 │   │       └── afip/          # puerto FacturadorElectronico (+ CLAUDE.md)
 │   └── web/                   # Next.js App Router
 │       ├── app/               # rutas (dashboard, ventas, inventario, compras, caja, …)
-│       ├── lib/               # api-client, paginacion, money (formato ARS)
+│       ├── components/        # UI (nav: NavShell + NavFlotante en layout raíz)
+│       ├── lib/               # api-client, paginacion, money, auth, sesion
 │       └── tests/e2e/         # Playwright (+ .auth multi-rol)
 ├── services/
 │   └── afip/                  # microservicio Python (producción; dev/CI usa mock en API)
@@ -105,6 +106,12 @@ posta/
 ```
 
 `CLAUDE.md` por módulo vive junto al código (`apps/api/src/modules/<modulo>/`). Skills versionadas en `.claude/skills/<nombre>/SKILL.md`.
+
+### Navegación web
+
+- **`NavShell`** (`components/nav/NavShell.tsx`): montado en `app/layout.tsx`; persiste entre rutas (no se remonta en cada página).
+- **`NavFlotante`**: sidebar flotante desktop + barra inferior mobile; ítem **Panel** (▦) arriba → `rutaInicioPorRol` (`/dashboard`, `/ventas`, `/contador`).
+- Perfil de usuario: cache en `sessionStorage` para evitar layout shift; skeleton de tamaño fijo mientras carga.
 
 ---
 
@@ -179,7 +186,7 @@ La misma infraestructura de colas y workers se reutiliza a futuro para webhooks 
 - Versionado `/api/v1`.
 - Validación Zod en el borde (`ZodValidationPipe`); errores de campo: `{ campo, motivo }`.
 - Respuestas: listados `{ data, meta }`; algunos recursos singleton `{ data }`; otros devuelven el row directo (unificar progresivamente).
-- Errores HTTP: `{ statusCode, mensaje, errores? }` vía `HttpExceptionFilter`.
+- Errores HTTP: `{ statusCode, mensaje, errores? }` vía `AllExceptionsFilter` (`apps/api/src/common/filters/all-exceptions.filter.ts`).
 - JWT + `RolesGuard` + `withTenant` en cada handler de negocio.
 - OpenAPI en `/api/v1/docs`; decoradores en `apps/api/src/common/swagger/error-responses.ts`.
 

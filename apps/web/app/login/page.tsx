@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 import { apiClient } from '@/lib/api-client';
 import { rutaInicioTrasAuth } from '@/lib/auth-api';
+import { precargarPerfilDesdeToken } from '@/components/nav/NavPerfil';
 import { ABtn } from '@/components/ui';
 
 // Separado en componente propio porque useSearchParams requiere Suspense en Next.js 15
@@ -49,7 +50,7 @@ function LoginForm() {
         throw new Error('No se pudo iniciar sesión. Intentá de nuevo.');
       }
 
-      // Navegación completa: asegura cookies de sesión antes del middleware/RSC
+      await precargarPerfilDesdeToken(data.session.access_token, email);
       window.location.assign(await rutaInicioTrasAuth(data.session.access_token));
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
@@ -74,6 +75,7 @@ function LoginForm() {
         refresh_token: data.refresh_token,
       });
       if (!sessionData.session) throw new Error('No se pudo iniciar sesión tras el registro.');
+      await precargarPerfilDesdeToken(sessionData.session.access_token, email);
       window.location.assign(await rutaInicioTrasAuth(sessionData.session.access_token));
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';

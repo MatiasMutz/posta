@@ -16,7 +16,41 @@ export interface PerfilUsuario {
   rol: Rol;
 }
 
+const PERFIL_CACHE_KEY = 'posta-nav-perfil';
+
+export function leerPerfilCache(): PerfilUsuario | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(PERFIL_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PerfilUsuario;
+    if (!parsed.email || !parsed.nombreTenant || !parsed.rol) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function guardarPerfilCache(perfil: PerfilUsuario) {
+  sessionStorage.setItem(PERFIL_CACHE_KEY, JSON.stringify(perfil));
+}
+
+/** Precarga el cache de nav antes de un redirect post-login (evita layout shift inicial). */
+export async function precargarPerfilDesdeToken(accessToken: string, email: string) {
+  try {
+    const { data } = await apiClient<{ data: TenantMe }>('/tenants/me', { token: accessToken });
+    guardarPerfilCache({ email, nombreTenant: data.nombre, rol: data.rol });
+  } catch {
+    // El nav refrescará el perfil en el primer mount
+  }
+}
+
+export function limpiarPerfilCache() {
+  sessionStorage.removeItem(PERFIL_CACHE_KEY);
+}
+
 export async function cerrarSesion() {
+  limpiarPerfilCache();
   const supabase = createSupabaseBrowser();
   await supabase.auth.signOut();
   window.location.assign('/');
@@ -38,6 +72,11 @@ function Avatar({ email }: { email: string }) {
   );
 }
 
+const claseBtnCerrarSesion =
+  'w-full text-left font-sans font-medium rounded-[2px] border border-transparent px-2 py-1.5 cursor-pointer transition-colors ' +
+  'text-muted hover:text-err hover:bg-err-soft hover:border-err/25 ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-err/40 focus-visible:ring-offset-1';
+
 function PerfilDetalle({ perfil }: { perfil: PerfilUsuario }) {
   return (
     <div className="min-w-0 flex-1">
@@ -45,6 +84,32 @@ function PerfilDetalle({ perfil }: { perfil: PerfilUsuario }) {
       <p className="font-sans text-[11px] text-muted truncate">
         {perfil.nombreTenant} · {ROL_LABEL[perfil.rol]}
       </p>
+    </div>
+  );
+}
+
+export function NavPerfilSidebarSkeleton() {
+  return (
+    <div className="flex flex-col gap-2 px-1" aria-hidden>
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-paper-warm shrink-0" />
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="h-3 bg-paper-warm rounded-[2px] w-full" />
+          <div className="h-2.5 bg-paper-warm rounded-[2px] w-4/5" />
+        </div>
+      </div>
+      <div className="h-3 bg-paper-warm rounded-[2px] w-24 mx-1" />
+    </div>
+  );
+}
+
+export function NavPerfilMobileSkeleton() {
+  return (
+    <div className="fixed top-4 right-4 z-50 md:hidden" aria-hidden>
+      <div className="flex items-center gap-2 bg-card border border-rule rounded-[2px] px-2 py-1.5 shadow-[var(--shadow)] w-[148px]">
+        <div className="w-8 h-8 rounded-full bg-paper-warm shrink-0" />
+        <div className="h-3 bg-paper-warm rounded-[2px] flex-1" />
+      </div>
     </div>
   );
 }
@@ -59,7 +124,7 @@ export function NavPerfilSidebar({ perfil }: { perfil: PerfilUsuario }) {
       <button
         type="button"
         onClick={() => void cerrarSesion()}
-        className="w-full text-left font-sans text-[11px] text-muted hover:text-err transition-colors py-1 px-1"
+        className={`${claseBtnCerrarSesion} text-[11px]`}
       >
         Cerrar sesión
       </button>
@@ -110,7 +175,7 @@ export function NavPerfilMobile({ perfil }: { perfil: PerfilUsuario }) {
             type="button"
             role="menuitem"
             onClick={() => void cerrarSesion()}
-            className="w-full text-left font-sans text-sm text-muted hover:text-err transition-colors py-1"
+            className={`${claseBtnCerrarSesion} text-sm`}
           >
             Cerrar sesión
           </button>
@@ -121,22 +186,30 @@ export function NavPerfilMobile({ perfil }: { perfil: PerfilUsuario }) {
 }
 
 export function usePerfilUsuario() {
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
+  const [perfil, setPerfil] = useState<PerfilUsuario | null>(leerPerfilCache);
 
   useEffect(() => {
     const supabase = createSupabaseBrowser();
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return;
+      if (!session) {
+        limpiarPerfilCache();
+        setPerfil(null);
+        return;
+      }
       const email = session.user.email ?? '';
       try {
         const { data } = await apiClient<{ data: TenantMe }>('/tenants/me', {
           token: session.access_token,
         });
-        setPerfil({ email, nombreTenant: data.nombre, rol: data.rol });
+        const next = { email, nombreTenant: data.nombre, rol: data.rol };
+        guardarPerfilCache(next);
+        setPerfil(next);
       } catch {
         const fallback = session.user.app_metadata?.rol as Rol | undefined;
         if (fallback) {
-          setPerfil({ email, nombreTenant: 'Mi negocio', rol: fallback });
+          const next = { email, nombreTenant: 'Mi negocio', rol: fallback };
+          guardarPerfilCache(next);
+          setPerfil(next);
         }
       }
     });

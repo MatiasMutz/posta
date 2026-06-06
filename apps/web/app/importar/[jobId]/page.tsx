@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { requireSesion } from '@/lib/sesion';
 import { rutaInicioPorRol } from '@/lib/auth';
-import { NavFlotante } from '@/components/nav/NavFlotante';
 import { PollingEstado } from '@/components/importar/PollingEstado';
 
 export default async function ImportarJobPage({ params }: { params: Promise<{ jobId: string }> }) {
@@ -15,7 +14,6 @@ export default async function ImportarJobPage({ params }: { params: Promise<{ jo
 
   return (
     <div className="min-h-screen bg-paper pb-24 md:pb-8 md:pl-24">
-      <NavFlotante />
       <div className="max-w-3xl mx-auto px-4 pt-8">
         {/* Migas */}
         <div className="flex items-center gap-2 font-sans text-xs text-muted mb-6">

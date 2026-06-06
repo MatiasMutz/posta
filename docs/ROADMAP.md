@@ -12,17 +12,38 @@
 
 | Fase | ¿Implementado en código? | Notas |
 |------|--------------------------|--------|
-| 0 | Sí | Monorepo, CI, skills, packages, tokens UI. Superpowers = proceso del equipo, no artefacto del repo. |
-| 1 | Sí | Auth, tenants, invitaciones, RLS, 6 isolation specs, roles API+web. Migración `0010` (grants `usuarios_tenant`) incluida. Storage: RLS en SQL + `assertStoragePathDelTenant` en API (sin E2E cross-tenant de bucket). |
+| 0 | Sí | Monorepo, CI, **11 skills**, packages, tokens UI. Superpowers = proceso del equipo, no artefacto del repo. |
+| 1 | Sí | Auth, tenants, invitaciones, RLS, **8 isolation specs** + Storage JWT (`storage.isolation.integration.spec.ts`), roles API+web. Migraciones hasta `0013` (InitPlan RLS). |
 | 2 | Sí | CRUD, paginación, búsqueda, `solo_bajo_stock`, movimientos, soft-delete, SKU y `codigo_barras`, E2E inventario. |
-| 3 | Sí | BullMQ, Storage, perfiles inventario+clientes, Levenshtein, reintento, 3 E2E import. Sin wizard de primera vez (ver exclusiones). |
-| 4 | Sí | POS, clientes+saldo deudor al vender, factura A/B/**C**/ticket, remito/presupuesto, historial, export IVA, mock AFIP+cola, E2E ventas/AFIP. Sin cobro de deuda (Fase 6). |
+| 3 | Sí | BullMQ, Storage, perfiles inventario+clientes+proveedores, Levenshtein, reintento, 3 E2E import. Sin wizard de primera vez (ver exclusiones). |
+| 4 | Sí | POS, clientes+saldo deudor al vender, factura A/B/**C**/ticket, remito/presupuesto, historial, export IVA, mock AFIP+cola, E2E ventas/AFIP. |
 | 5 | Sí | Proveedores+saldo acreedor, compras/gastos, stock/costo en compra con producto, export IVA Compras, import proveedores, E2E compras. |
 | 6 | Sí | Caja chica (apertura/cierre), movimientos, flujo de caja, pagos cliente/proveedor, E2E tesorería. |
+| 7 | Sí | Dashboard dueño (`/dashboard`), vista contador (`/contador`), KPIs, export IVA, E2E dashboard. |
 
-**Deuda menor (no bloquea Fase 6):** E2E dedicados a factura C/ticket; test de integración Storage con JWT real; stress import 5k filas documentado; cobertura mínima en CI; migrar `next lint` → ESLint CLI.
+**Deuda menor (no bloquea avanzar):** E2E dedicados a factura C/ticket; stress import 5k filas documentado; cobertura mínima en CI; migrar `next lint` → ESLint CLI; extender contrato costo/ganancia a contador y dashboard.
 
-**Antes de Fase 6 en tu máquina:** `pnpm db:migrate` (hasta `0011`), `pnpm test:integration`, `pnpm test:e2e` en verde.
+### Estado operativo actual
+
+| Área | Estado |
+|------|--------|
+| Migraciones DB | `0001`–`0013` (`pnpm db:migrate`, `pnpm --filter api db:check`) |
+| Tests API unit | ~221 (`pnpm test`) |
+| Tests integration | ~60 — 8× `*.isolation.spec.ts`, Storage JWT, BullMQ smoke (`pnpm test:integration`) |
+| Tests web unit | ~49 (`pnpm --filter web test`) |
+| E2E | 27 specs — chromium + mobile; job AFIP resilience aparte |
+| Contratos roles | `costo-ganancia.contract.spec.ts` (vendedor sin costo/ganancia en API) |
+| Errores API | `AllExceptionsFilter`; `ApiError` + `api-client` unificado |
+| Nav web | `NavShell` en root layout (persistente); Panel ▦ arriba → inicio por rol |
+
+**Verificación local antes de nuevas fases:**
+
+```bash
+pnpm db:migrate
+pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration
+pnpm --filter api db:check
+pnpm test:e2e
+```
 
 ---
 
@@ -32,7 +53,7 @@ Objetivo: repo listo para desarrollar con disciplina de producción antes de esc
 
 - Monorepo (`ARCHITECTURE.md` §3): `apps/api`, `apps/web`, `services/afip`, `packages/*`, `docs/`, `.claude/skills/`
 - **Superpowers** (metodología): ver `docs/AI-WORKFLOW.md`
-- Skills de dominio en `.claude/skills/*/SKILL.md` (7 skills)
+- Skills de dominio en `.claude/skills/*/SKILL.md` (**11 skills** — ver `CLAUDE.md` §7)
 - MCPs: Supabase en `.mcp.json`; Context7 / Playwright / GitHub como plantillas comentadas
 - NestJS + Next.js + Supabase; spikes D-13 (Drizzle) y D-14 (Zod) cerrados en `PROJECT.md` §6
 - CI: lint, typecheck, unit, integration, OpenAPI smoke, E2E, E2E AFIP resilience
@@ -50,7 +71,7 @@ Objetivo: repo listo para desarrollar con disciplina de producción antes de esc
 - Tests de aislamiento por tabla + fail-safe
 - `RolesGuard`; vendedor sin `costo` en API
 
-**Estado:** ✅ Isolation specs: tenants, inventario, clientes, imports, ventas, invitaciones. E2E roles + equipo.
+**Estado:** ✅ Isolation specs: tenants, invitaciones, inventario, clientes, imports, ventas, compras, tesorería. Storage cross-tenant con JWT. E2E roles + equipo.
 
 ---
 
@@ -67,7 +88,7 @@ Objetivo: repo listo para desarrollar con disciplina de producción antes de esc
 
 - Skill `excel-import`; BullMQ + Supabase Storage
 - Sanitización, Levenshtein, grilla in-line, reintento parcial
-- Entidades: inventario + clientes
+- Entidades: inventario + clientes + proveedores
 - E2E: happy path, errores, clientes
 
 ---
@@ -79,28 +100,11 @@ Objetivo: repo listo para desarrollar con disciplina de producción antes de esc
 - Clientes + saldo deudor al vender en cta. cte. (**cobro de deuda → Fase 6**)
 - `FacturacionProcessor` (reintentos → `error_afip`)
 
-### Post-hardening (calidad operativa)
+### Post-hardening Fase 4 (histórico)
 
-| Área | Estado |
-|------|--------|
-| E2E existentes | auth (login, roles, activar-cuenta), inventario (gestión+movimientos), import×3, POS (+ factura A, stock insuficiente), remito, IVA, AFIP reintento, clientes CRUD/editar/cta. cte., equipo, ventas detalle |
-| E2E pendientes | factura C/ticket (opcional; tipos ya en API/POS) |
-| Tests API | ~167 unit + integration RLS (ver CI / `pnpm test:integration`) |
-| Tests web | `api-client`, `ventas-pos`, forms, money, paginacion, `sesion` |
-| OpenAPI | `@ApiOperation` + errores estándar; smoke ampliado en CI |
-| Errores | `AllExceptionsFilter`; `ApiError` + `api-client` unificado |
-| DB | Migraciones `0001`–`0010`; `pnpm db:check`; `pnpm db:migrate` |
-| AFIP | `FacturadorMock` (default) + `FacturadorHttp` vía `AFIP_SERVICE_URL` |
-| Infra | `infra/*.Dockerfile`, `docker-compose.prod.yml` |
-| Docs | `TESTING.md`, `DATA-FETCHING.md`, `AI-WORKFLOW.md` |
+E2E: auth, inventario, import×3, POS, remito, IVA, AFIP reintento, clientes, equipo, ventas detalle. Pendiente opcional: E2E factura C/ticket dedicados.
 
-**Exclusiones explícitas (no forman parte de 0–4):** dashboard dueño (Fase 7), tesorería/caja (Fase 6), **pagos** de cta. cte. activa, AFIP real en prod (`services/afip` es stub), **onboarding wizard** post-registro (sí existe `/importar` como módulo).
-
-### Puerta a Fase 6
-
-- [ ] Migraciones `0001`–`0011` aplicadas en el entorno que uses
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` en verde
-- [ ] `pnpm test:integration` y `pnpm test:e2e` en verde (local o CI)
+**Exclusiones que aplicaban en 0–4 (ya resueltas en fases posteriores):** dashboard (Fase 7), tesorería/pagos cta. cte. (Fase 6). Siguen fuera de alcance: AFIP real en prod (`services/afip` es stub), **onboarding wizard** post-registro (sí existe `/importar` como módulo).
 
 ---
 
@@ -120,8 +124,6 @@ Objetivo: repo listo para desarrollar con disciplina de producción antes de esc
 | Isolation | `compras.isolation.spec.ts` (proveedores, compras, items_compra) |
 | OpenAPI smoke | `/proveedores`, `/compras`, `/compras/iva-compras` |
 
-**Exclusiones (Fase 6):** pagos/cancelación deuda a proveedores y clientes.
-
 ## Fase 6 — Tesorería y Finanzas ✅
 
 - Caja chica: apertura/cierre diario, ingresos/egresos manuales
@@ -130,12 +132,27 @@ Objetivo: repo listo para desarrollar con disciplina de producción antes de esc
 - Migración `0012`; módulo `apps/api/src/modules/tesoreria/`
 - E2E: `tesoreria/caja-pagos`
 
+### Post-hardening Fase 6
+
+| Área | Estado |
+|------|--------|
+| Isolation | `tesoreria.isolation.spec.ts` (sesiones_caja, movimientos_caja, pagos_cliente, pagos_proveedor) |
+| OpenAPI smoke | `/tesoreria/caja`, `/tesoreria/pagos/*`, `/tesoreria/flujo-caja` |
+
 ## Fase 7 — Dashboard y vista Contador ✅
 
 - **Dashboard dueño** (`/dashboard`): KPIs ventas día/mes, caja, cuentas a cobrar, ganancia estimada, gráfico SVG 7 días, top productos, horarios pico, alertas, accesos rápidos.
 - **Vista contador** (`/contador`): resumen fiscal IVA ventas/compras, comprobantes paginados, export IVA, sin costos/ganancias.
 - API: `GET /dashboard`, `GET /contador/resumen`, `GET /contador/comprobantes`.
-- Tests: unit (`iva`, `contador.service`, `dashboard.access`), web (`auth`, `DashboardWidgets`), E2E (`dashboard/*`, roles actualizados).
+- Tests: unit (`iva`, `contador.service`, `dashboard.access`), web (`auth`, `dashboard-utils`), E2E (`dashboard/*`, roles actualizados).
+
+### Post-hardening Fase 7
+
+| Área | Estado |
+|------|--------|
+| API | `GET /dashboard`, `GET /contador/resumen`, `GET /contador/comprobantes` |
+| Roles | Vendedor bloqueado en dashboard/contador (API + middleware web) |
+| E2E | `dashboard/dashboard-dueno`, `dashboard/contador-vista` |
 
 ---
 

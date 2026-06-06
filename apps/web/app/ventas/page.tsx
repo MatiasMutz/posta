@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
-import { NavFlotante } from '@/components/nav/NavFlotante';
 import { POS } from '@/components/ventas/POS';
 import type { ApiResponse } from '@posta/shared-types';
 
@@ -58,7 +57,6 @@ export default async function VentasPage({ searchParams }: VentasPageProps) {
 
   return (
     <div className="min-h-screen bg-paper pb-24 md:pb-8 md:pl-24">
-      <NavFlotante />
       <div className="max-w-5xl mx-auto px-4 pt-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-serif text-2xl text-ink">Punto de venta</h1>

@@ -3,7 +3,6 @@ import { requireSesion } from '@/lib/sesion';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { redirectPorRol } from '@/lib/auth';
 import { LIMITE_PAGINA_DEFAULT, parsePagina } from '@/lib/paginacion';
-import { NavFlotante } from '@/components/nav/NavFlotante';
 import { PanelContador } from '@/components/dashboard/PanelContador';
 import type { ApiResponse } from '@posta/shared-types';
 
@@ -78,7 +77,6 @@ export default async function ContadorPage({
 
   return (
     <div className="min-h-screen bg-paper pb-24 md:pb-8 md:pl-24">
-      <NavFlotante />
       <div className="max-w-6xl mx-auto px-4 pt-8">
         {errorCarga && (
           <div className="bg-err-soft border border-err rounded-[2px] px-4 py-3 mb-6">

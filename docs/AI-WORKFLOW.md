@@ -16,15 +16,21 @@ Si Superpowers no está disponible, seguir manualmente `CLAUDE.md` §5.
 
 ## Skills de dominio
 
+Las 11 skills viven en `.claude/skills/<nombre>/SKILL.md`. Lista canónica en `CLAUDE.md` §7.
+
 | Skill | Cuándo |
 |-------|--------|
-| `rls-policy` | Tablas `tenant_id`, policies, isolation specs |
+| `rls-policy` | Tablas `tenant_id`, policies, `*.isolation.spec.ts` |
 | `money` | Montos NUMERIC / `@posta/money` |
-| `add-endpoint` | Endpoints REST |
-| `e2e-feature` | Playwright |
-| `excel-import` | Motor importación |
-| `afip-adapter` | Facturación / cola AFIP |
-| `paginacion` | Listados paginados |
+| `db-migration` | Migraciones Drizzle/SQL seguras, sync a Supabase |
+| `error-handling` | Catch blocks, logging, mensajes al cliente en NestJS |
+| `openapi-contract` | Smoke OpenAPI antes de pushear (`openapi-smoke.sh`) |
+| `caveman-debugging` | Logs temporales `[DEBUG-TMP]` → observar → test |
+| `afip-adapter` | Facturación / cola AFIP, mock↔real |
+| `excel-import` | Motor importación async |
+| `add-endpoint` | Endpoints REST (Zod, guards, OpenAPI, tests) |
+| `paginacion` | Listados paginados API + web |
+| `e2e-feature` | Playwright en `apps/web/tests/e2e/` |
 
 ## MCPs (`.mcp.json`)
 

@@ -8,7 +8,7 @@ Estrategia de tests del monorepo. Complementa `CLAUDE.md` §4 (Definition of Don
 |------|---------|-----------|
 | Unit (API) | `pnpm test` | Servicios, guards, processors, validadores |
 | Unit (web) | `pnpm --filter web test` | `api-client`, `ventas-pos`, `money`, `paginacion`, schemas de forms |
-| Integration / RLS | `pnpm test:integration` | Aislamiento multi-tenant, fail-safe sin contexto, processor imports |
+| Integration / RLS | `pnpm test:integration` | 8× aislamiento RLS, Storage JWT, BullMQ smoke (~60 tests) |
 | E2E | `pnpm test:e2e` | Flujos de usuario (Playwright, chromium + mobile) |
 | OpenAPI smoke | `./scripts/openapi-smoke.sh` | Paths principales documentados |
 
@@ -17,6 +17,7 @@ Estrategia de tests del monorepo. Complementa `CLAUDE.md` §4 (Definition of Don
 - Config: Vitest en `apps/api`
 - Excluye `*.isolation.spec.ts` y `*.integration.spec.ts` del job unitario
 - Cada módulo de dominio: `*.service.spec.ts`; controllers con spec mínimo
+- Contratos de roles: `costo-ganancia.contract.spec.ts` (vendedor sin `costo`/`ganancia` en JSON de API)
 
 ## Unit — Web
 
@@ -36,9 +37,11 @@ pnpm db:migrate          # aplicar migraciones locales
 pnpm test:integration
 ```
 
-Por cada tabla con RLS: `*.isolation.spec.ts` con lectura/escritura cruzada entre tenants **y** test fail-safe (sin `set_config` → 0 filas).
+**Isolation specs (8):** `tenants`, `invitaciones`, `inventario`, `clientes`, `imports`, `ventas`, `compras`, `tesorería`. Cada uno cubre lectura/escritura cruzada entre tenants **y** fail-safe (sin `set_config` → 0 filas).
 
-Imports Storage: policies en `0005_storage_imports.sql` + validación de path en API (`assertStoragePathDelTenant`, `storage-path.spec.ts`) + aislamiento cross-tenant con JWT real (`storage.isolation.integration.spec.ts`).
+**Storage:** policies en `0005_storage_imports.sql` + `assertStoragePathDelTenant` (`storage-path.spec.ts`) + aislamiento cross-tenant con JWT real (`storage.isolation.integration.spec.ts`).
+
+**Otros integration:** `imports.processor.integration.spec.ts` (smoke BullMQ + Redis).
 
 ## E2E
 

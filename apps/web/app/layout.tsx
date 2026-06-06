@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Instrument_Serif, Geist, JetBrains_Mono } from 'next/font/google';
 import { QueryProvider } from '@/components/providers/QueryProvider';
+import { NavShell } from '@/components/nav/NavShell';
 import './globals.css';
 
 const instrumentSerif = Instrument_Serif({
@@ -28,7 +29,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={`${instrumentSerif.variable} ${geist.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <NavShell />
+          {children}
+        </QueryProvider>
       </body>
     </html>
   );
