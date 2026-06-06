@@ -37,7 +37,7 @@ ALTER TABLE ventas FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "ventas_tenant_isolation"
   ON ventas
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT, UPDATE ON ventas TO authenticated;
 
@@ -63,6 +63,6 @@ ALTER TABLE items_venta FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "items_venta_tenant_isolation"
   ON items_venta
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT ON items_venta TO authenticated;

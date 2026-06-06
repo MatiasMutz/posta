@@ -30,14 +30,14 @@ ALTER TABLE sesiones_caja ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sesiones_caja FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "sesiones_caja_select" ON sesiones_caja FOR SELECT
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "sesiones_caja_insert" ON sesiones_caja FOR INSERT
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "sesiones_caja_update" ON sesiones_caja FOR UPDATE
-  USING  (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING  (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid)
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT, UPDATE ON sesiones_caja TO authenticated;
 
@@ -60,10 +60,10 @@ ALTER TABLE pagos_cliente ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pagos_cliente FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "pagos_cliente_select" ON pagos_cliente FOR SELECT
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "pagos_cliente_insert" ON pagos_cliente FOR INSERT
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT ON pagos_cliente TO authenticated;
 
@@ -86,10 +86,10 @@ ALTER TABLE pagos_proveedor ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pagos_proveedor FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "pagos_proveedor_select" ON pagos_proveedor FOR SELECT
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "pagos_proveedor_insert" ON pagos_proveedor FOR INSERT
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT ON pagos_proveedor TO authenticated;
 
@@ -115,9 +115,9 @@ ALTER TABLE movimientos_caja ENABLE ROW LEVEL SECURITY;
 ALTER TABLE movimientos_caja FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "movimientos_caja_select" ON movimientos_caja FOR SELECT
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "movimientos_caja_insert" ON movimientos_caja FOR INSERT
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT ON movimientos_caja TO authenticated;

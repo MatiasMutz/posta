@@ -20,16 +20,16 @@ ALTER TABLE invitaciones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invitaciones FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "invitaciones_select" ON invitaciones FOR SELECT
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "invitaciones_insert" ON invitaciones FOR INSERT
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "invitaciones_update" ON invitaciones FOR UPDATE
-  USING  (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING  (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid)
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "invitaciones_delete" ON invitaciones FOR DELETE
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON invitaciones TO authenticated;

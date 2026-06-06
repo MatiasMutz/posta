@@ -15,6 +15,7 @@ Procedimiento **obligatorio** antes de crear o modificar tablas con `tenant_id`.
 - [ ] Índices compuestos con `tenant_id` como **primera columna**
 - [ ] App usa `withTenant()` — nunca `SET` sin `LOCAL`
 - [ ] Test `*.isolation.spec.ts` en verde (`pnpm test:integration`)
+- [ ] `current_setting()` / `auth.*()` envueltos en `(select ...)` (InitPlan — ver abajo)
 
 ## Migración SQL
 
@@ -23,23 +24,38 @@ ALTER TABLE <tabla> ENABLE ROW LEVEL SECURITY;
 ALTER TABLE <tabla> FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "<tabla>_tenant_select" ON <tabla> FOR SELECT
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "<tabla>_tenant_insert" ON <tabla> FOR INSERT
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "<tabla>_tenant_update" ON <tabla> FOR UPDATE
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid)
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "<tabla>_tenant_delete" ON <tabla> FOR DELETE
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE INDEX IF NOT EXISTS idx_<tabla>_tenant_<campo>
   ON <tabla> (tenant_id, <campo_de_busqueda>);
 ```
 
 `NULLIF(..., '')::uuid` → si `app.tenant_id` no está seteado, la comparación falla → **fail-safe garantizado**.
+
+### InitPlan (performance RLS)
+
+Supabase Performance Advisor advierte si `current_setting()` o `auth.uid()` aparecen **sin** subquery en policies RLS: Postgres los evalúa **por fila**. Envolver en `(select ...)` fuerza evaluación **una vez por query** (InitPlan). El comportamiento de seguridad es idéntico.
+
+```sql
+-- ❌ lento a escala
+USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+
+-- ✅ InitPlan
+USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid)
+
+-- Storage con auth.jwt() — mismo patrón
+AND (storage.foldername(name))[1] = ((select auth.jwt()) -> 'app_metadata' ->> 'tenant_id')
+```
 
 ## Contexto de tenant (app)
 

@@ -16,7 +16,7 @@ ALTER TABLE tenants FORCE ROW LEVEL SECURITY;
 -- Fail-safe: sin contexto → 0 filas (NULLIF convierte '' en NULL → comparación falla).
 CREATE POLICY "tenants_select"
   ON tenants FOR SELECT
-  USING (id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT ON tenants TO authenticated;
 
@@ -40,20 +40,20 @@ ALTER TABLE usuarios_tenant FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "usuarios_tenant_select"
   ON usuarios_tenant FOR SELECT
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "usuarios_tenant_insert"
   ON usuarios_tenant FOR INSERT
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "usuarios_tenant_update"
   ON usuarios_tenant FOR UPDATE
-  USING  (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING  (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid)
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "usuarios_tenant_delete"
   ON usuarios_tenant FOR DELETE
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT ON usuarios_tenant TO authenticated;
 -- INSERT/UPDATE/DELETE sobre usuarios_tenant solo los hace el servicio via admin (sin SET LOCAL ROLE).

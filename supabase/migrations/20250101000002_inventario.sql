@@ -31,21 +31,21 @@ ALTER TABLE productos FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "productos_select"
   ON productos FOR SELECT
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "productos_insert"
   ON productos FOR INSERT
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "productos_update"
   ON productos FOR UPDATE
-  USING  (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING  (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid)
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 -- No DELETE: soft-delete via activo=false
 CREATE POLICY "productos_delete"
   ON productos FOR DELETE
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON productos TO authenticated;
 
@@ -75,11 +75,11 @@ ALTER TABLE movimientos_stock FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "movimientos_stock_select"
   ON movimientos_stock FOR SELECT
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 CREATE POLICY "movimientos_stock_insert"
   ON movimientos_stock FOR INSERT
-  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  WITH CHECK (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 -- Inmutable: no UPDATE ni DELETE (trazabilidad)
 GRANT SELECT, INSERT ON movimientos_stock TO authenticated;

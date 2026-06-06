@@ -25,7 +25,7 @@ ALTER TABLE clientes FORCE ROW LEVEL SECURITY;
 -- fail-safe: NULLIF devuelve NULL si el setting está vacío → 0 filas
 CREATE POLICY "clientes_tenant_isolation"
   ON clientes
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON clientes TO authenticated;
 
@@ -61,7 +61,7 @@ ALTER TABLE import_jobs FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY "import_jobs_tenant_isolation"
   ON import_jobs
-  USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF((select current_setting('app.tenant_id', true)), '')::uuid);
 
 GRANT SELECT, INSERT, UPDATE ON import_jobs TO authenticated;
 
@@ -78,12 +78,12 @@ GRANT SELECT, INSERT, UPDATE ON import_jobs TO authenticated;
 -- ON storage.objects FOR INSERT TO authenticated
 -- WITH CHECK (
 --   bucket_id = 'imports' AND
---   (storage.foldername(name))[1] = (auth.jwt() -> 'app_metadata' ->> 'tenant_id')
+--   (storage.foldername(name))[1] = ((select auth.jwt()) -> 'app_metadata' ->> 'tenant_id')
 -- );
 --
 -- CREATE POLICY "usuarios pueden leer sus imports"
 -- ON storage.objects FOR SELECT TO authenticated
 -- USING (
 --   bucket_id = 'imports' AND
---   (storage.foldername(name))[1] = (auth.jwt() -> 'app_metadata' ->> 'tenant_id')
+--   (storage.foldername(name))[1] = ((select auth.jwt()) -> 'app_metadata' ->> 'tenant_id')
 -- );
