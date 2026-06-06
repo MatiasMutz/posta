@@ -86,7 +86,7 @@ Mantener el set acotado (≤ 5–7) para no degradar la calidad de decisión del
 
 - **Context7** — siempre que uses una librería/API: verificar la doc **actual** antes de escribir, en vez de confiar en memoria (puede estar desactualizada).
 - **Supabase MCP** — inspeccionar schema, gestionar usuarios auth y **revisar policies RLS** sin salir de la terminal. Usar al trabajar con base de datos o RLS.
-- **Playwright MCP** — para E2E y verificación de UI. **Ojo:** es pesado en tokens; desactivarlo/no invocarlo cuando no haga falta navegador.
+- **Playwright MCP** — para E2E y verificación de UI. **Solo activarlo durante desarrollo E2E real** (specs Playwright, verificación visual). Es pesado en tokens; no invocarlo en tareas de backend, migraciones ni refactors de API.
 - **GitHub MCP** — PRs, issues, estado de CI.
 
 No instalar el filesystem MCP (Claude Code ya trae herramientas de archivo nativas). No sumar MCPs sin un uso claro: cada uno expande la superficie de ataque y satura la lista de tools.
@@ -101,6 +101,10 @@ No instalar el filesystem MCP (Claude Code ya trae herramientas de archivo nativ
 |---|---|
 | `rls-policy` | Escribir una policy RLS correcta (SET LOCAL, FORCE, fail-safe, índice líder, test de aislamiento). |
 | `money` | Manejar montos: NUMERIC en base, tipo dedicado en app, formato ARS, cero floats. |
+| `db-migration` | Crear migraciones Drizzle seguras: sin DROP accidentales, tenant_id + RLS + índices, sync a Supabase. |
+| `error-handling` | Catch blocks en backend: logging, mensajes al cliente, progreso best-effort en workers, re-throw. |
+| `openapi-contract` | Verificar que OpenAPI no rompió contratos (`openapi-smoke.sh`) antes de pushear. |
+| `caveman-debugging` | Debug con logs temporales `[DEBUG-TMP]` → observar → remover → fijar con test. |
 | `afip-adapter` | El patrón puerto/adaptador para AFIP (mock↔real), resiliencia y "pendiente de facturación". |
 | `excel-import` | Implementar/extender el motor de importación: job async, sanitización, validación humanizada in-line. |
 | `add-endpoint` | Agregar un endpoint REST con la convención del repo (DTO/Zod, guard de rol, contexto de tenant, OpenAPI, tests). |

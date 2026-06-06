@@ -14,6 +14,28 @@ import { filtrarDuplicadosEnArchivo, type FilaImportable } from './import-valida
 import { mensajeErrorImportacion } from './import-errors';
 
 const REPORTE_CADA = 50; // actualizar progreso cada N filas
+const REINTENTOS_PROGRESO = 3;
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  opts: { intentos: number; etiqueta: string; logger: Logger; critico?: boolean },
+): Promise<T | undefined> {
+  const { intentos, etiqueta, logger, critico = false } = opts;
+  for (let i = 1; i <= intentos; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      logger.warn(`${etiqueta} (intento ${i}/${intentos})`, err);
+      if (i === intentos) {
+        if (critico) throw err;
+        logger.warn(`${etiqueta}: se abandona tras ${intentos} intentos (el job sigue)`);
+        return undefined;
+      }
+      await new Promise((r) => setTimeout(r, 100 * 2 ** (i - 1)));
+    }
+  }
+  return undefined;
+}
 
 @Processor(IMPORTS_QUEUE)
 export class ImportsProcessor extends WorkerHost {
@@ -27,26 +49,35 @@ export class ImportsProcessor extends WorkerHost {
     const { tenantId, userId, jobId, storagePath, tipo, columnMap } = job.data;
     this.logger.log(`Procesando job ${jobId} (${tipo})`);
 
-    const setEstado = async (
+    const setEstado = (
       fase: string,
       progreso = 0,
       total = 0,
       extras: Record<string, unknown> = {},
+      critico = false,
     ) =>
-      withTenant(tenantId, (tx) =>
-        tx.update(importJobs)
-          .set({ estado: 'procesando', fase: fase as never, progreso, total, updated_at: new Date(), ...extras })
-          .where(eq(importJobs.id, jobId)),
+      withRetry(
+        () => withTenant(tenantId, (tx) =>
+          tx.update(importJobs)
+            .set({ estado: 'procesando', fase: fase as never, progreso, total, updated_at: new Date(), ...extras })
+            .where(eq(importJobs.id, jobId)),
+        ),
+        {
+          intentos: REINTENTOS_PROGRESO,
+          etiqueta: `Job ${jobId}: actualizar progreso (${fase})`,
+          logger: this.logger,
+          critico,
+        },
       );
 
     try {
       // Fase 1: descargar + parsear
-      await setEstado('parseando');
+      await setEstado('parseando', 0, 0, {}, true);
       const buffer = await this.service.descargarArchivo(tenantId, storagePath);
       const rows = this.service.parsearArchivo(buffer);
       const filasMapeadas = this.service.aplicarMapeo(rows, columnMap);
       const total = filasMapeadas.length;
-      await setEstado('validando', 0, total);
+      await setEstado('validando', 0, total, {}, true);
 
       // Fase 2: validar fila a fila con reporte periódico de progreso
       const perfil = tipo === 'inventario'
@@ -95,43 +126,44 @@ export class ImportsProcessor extends WorkerHost {
 
       await job.updateProgress(100);
 
-      // Marcar como completado
-      await withTenant(tenantId, (tx) =>
-        tx.update(importJobs)
-          .set({
-            estado: 'completado',
-            fase: null,
-            progreso: total,
-            total,
-            filas_ok: filasOk.length,
-            filas_error: errores.length,
-            errores: errores.length > 0 ? errores : null,
-            updated_at: new Date(),
-          })
-          .where(eq(importJobs.id, jobId)),
-      );
+      // Marcar como completado (crítico: si falla, el job no quedó persistido)
+      await setEstado('completado', total, total, {
+        estado: 'completado',
+        fase: null,
+        filas_ok: filasOk.length,
+        filas_error: errores.length,
+        errores: errores.length > 0 ? errores : null,
+      }, true);
 
       this.logger.log(
         `Job ${jobId} completado: ${filasOk.length} ok (${stats.creados} nuevos, ${stats.actualizados} actualizados), ${errores.length} errores`,
       );
     } catch (err) {
       this.logger.error(`Job ${jobId} falló`, err);
-      await withTenant(tenantId, (tx) =>
-        tx.update(importJobs)
-          .set({
-            estado: 'error',
-            errores: [{
-              numero: 0,
-              datos: {},
-              problemas: [{
-                campo: 'archivo',
-                valor: null,
-                motivo: mensajeErrorImportacion(err),
+      await withRetry(
+        () => withTenant(tenantId, (tx) =>
+          tx.update(importJobs)
+            .set({
+              estado: 'error',
+              errores: [{
+                numero: 0,
+                datos: {},
+                problemas: [{
+                  campo: 'archivo',
+                  valor: null,
+                  motivo: mensajeErrorImportacion(err),
+                }],
               }],
-            }],
-            updated_at: new Date(),
-          })
-          .where(eq(importJobs.id, jobId)),
+              updated_at: new Date(),
+            })
+            .where(eq(importJobs.id, jobId)),
+        ),
+        {
+          intentos: REINTENTOS_PROGRESO,
+          etiqueta: `Job ${jobId}: marcar error`,
+          logger: this.logger,
+          critico: true,
+        },
       );
       throw err; // BullMQ gestiona el retry
     }

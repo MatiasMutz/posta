@@ -7,7 +7,7 @@ import {
   ventas, itemsVenta, productos, clientes, sesionesCaja,
 } from '../../db/schema';
 import {
-  fromString, add, subtract, multiply, multiplyRatio, toNumericString, ZERO,
+  fromString, add, subtract, multiplyByQuantity, multiplyRatio, toNumericString, ZERO,
 } from '@posta/money';
 import { CajaService } from '../tesoreria/caja/caja.service';
 import type { DashboardQuery } from '@posta/validation';
@@ -162,7 +162,7 @@ export class DashboardService {
 
       let gananciaMes = ZERO;
       for (const item of itemsConCosto) {
-        const costoLinea = multiply(fromString(item.costo), Number(item.cantidad));
+        const costoLinea = multiplyByQuantity(fromString(item.costo), item.cantidad);
         gananciaMes = add(gananciaMes, subtract(fromString(item.subtotal), costoLinea));
       }
 
@@ -190,6 +190,7 @@ export class DashboardService {
     let variacionHoy: string | null = null;
     if (ventasAyerMoney > 0n) {
       const diff = subtract(ventasHoyMoney, ventasAyerMoney);
+      // Variación % vía basis points (×10000): aritmética entera en Money; el /100 final es solo display
       const pct = Number(diff * 10000n / ventasAyerMoney) / 100;
       variacionHoy = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
     }

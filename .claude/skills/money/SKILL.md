@@ -27,19 +27,29 @@ Drizzle devuelve `NUMERIC` como `string`. Correcto — no pasar por `parseFloat`
 ## App (`@posta/money`)
 
 ```typescript
-import { fromString, add, subtract, multiplyRatio, toNumericString } from '@posta/money';
+import {
+  fromString, add, subtract, multiplyByQuantity, multiplyRatio, toNumericString, isNegative,
+} from '@posta/money';
 
 const costo = fromString(producto.costo);   // Money
 const precio = fromString(producto.precio);
 const ganancia = subtract(precio, costo);
 
+// Precio × cantidad de unidades (cantidad NO es dinero)
+const subtotal = multiplyByQuantity(fromString(item.precio_unitario), item.cantidad);
+
 // IVA incluido: usar fracción exacta, no float
 const iva = multiplyRatio(total, 21n, 121n);
+
+// Validar montos negativos
+if (isNegative(fromString(saldo))) throw new BadRequestException(...);
 
 await tx.update(productos).set({ precio: toNumericString(nuevoPrecio) });
 ```
 
-**Prohibido:** `parseFloat`, `Number(monto)`, `multiply(m, 21/121)` para cálculos fiscales.
+**Prohibido:** `parseFloat`, `Number(monto)`, `multiply(monto, Number(cantidad))` para líneas de venta/compra.
+
+`multiply(m, factor)` queda para factores decimales puntuales (ej. descuentos); para cantidades de unidades usar `multiplyByQuantity`.
 
 ## UI (formato ARS)
 

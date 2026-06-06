@@ -1,3 +1,4 @@
+import { fromString, isNegative } from '@posta/money';
 import {
   sanitizarTexto,
   sanitizarCuit,
@@ -62,7 +63,7 @@ export const PROVEEDORES_CAMPOS: CampoDefinicion[] = [
     sanitizar: sanitizarMonto,
     validar: (v) => {
       if (v === null) return null;
-      if (Number(v) < 0) return 'El saldo no puede ser negativo';
+      if (isNegative(fromString(v))) return 'El saldo no puede ser negativo';
       return null;
     },
   },

@@ -3,21 +3,16 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com"
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
     }
   },
   "_comment_templates": {
-    "context7": {
-      "description": "Docs actualizadas de librerías — descomentar y configurar",
-      "example": {
-        "plugin-context7-plugin-context7": {
-          "type": "stdio",
-          "command": "npx",
-          "args": ["-y", "@upstash/context7-mcp"]
-        }
-      }
-    },
     "playwright": {
-      "description": "Navegador E2E — usar solo cuando haga falta UI; consume tokens",
+      "description": "Navegador E2E — activar solo para desarrollo E2E real (specs Playwright); no en backend/migraciones; consume tokens",
       "example": {
         "cursor-ide-browser": {
           "type": "builtin",

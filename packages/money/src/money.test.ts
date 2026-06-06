@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { fromString, fromCents, add, subtract, multiply, multiplyRatio, toNumericString, ZERO } from './index';
+import {
+  fromString, fromCents, add, subtract, multiply, multiplyByQuantity, multiplyRatio, toNumericString, ZERO,
+} from './index';
 
 describe('Money', () => {
   it('construye desde string NUMERIC', () => {
@@ -38,5 +40,13 @@ describe('Money', () => {
 
   it('calcula IVA incluido 21/121 sin float', () => {
     expect(toNumericString(multiplyRatio(fromString('121.00'), 21n, 121n))).toBe('21.00');
+  });
+
+  it('multiplica precio unitario por cantidad entera', () => {
+    expect(toNumericString(multiplyByQuantity(fromString('10.00'), 3))).toBe('30.00');
+  });
+
+  it('multiplica precio unitario por cantidad fraccional (string NUMERIC)', () => {
+    expect(toNumericString(multiplyByQuantity(fromString('10.00'), '2.5'))).toBe('25.00');
   });
 });

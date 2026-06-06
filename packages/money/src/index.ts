@@ -47,6 +47,29 @@ export function multiplyRatio(a: Money, numerator: bigint, denominator: bigint):
   return asMoney((a * numerator) / denominator);
 }
 
+const QTY_SCALE = 1000n; // hasta 3 decimales (NUMERIC 14,3 en items de venta/compra)
+
+function quantityToScaled(quantity: number | string): bigint {
+  if (typeof quantity === 'string') {
+    const [intPart = '0', decPart = '000'] = quantity.split('.');
+    return BigInt(intPart) * QTY_SCALE + BigInt(decPart.padEnd(3, '0').slice(0, 3));
+  }
+  if (Number.isInteger(quantity)) {
+    return BigInt(quantity) * QTY_SCALE;
+  }
+  const [intPart, decPart = ''] = quantity.toFixed(3).split('.');
+  return BigInt(intPart) * QTY_SCALE + BigInt(decPart.padEnd(3, '0').slice(0, 3));
+}
+
+/**
+ * Multiplica un precio/costo unitario por cantidad de unidades.
+ * La cantidad NO es dinero: es un factor entero o fraccional (hasta 3 decimales).
+ * Usar esto en vez de `multiply(monto, Number(cantidad))` para no confundir unidades con montos.
+ */
+export function multiplyByQuantity(unitPrice: Money, quantity: number | string): Money {
+  return asMoney((unitPrice * quantityToScaled(quantity)) / QTY_SCALE);
+}
+
 export function isNegative(m: Money): boolean {
   return m < 0n;
 }
