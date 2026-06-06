@@ -1,5 +1,5 @@
 /**
- * Test de aislamiento RLS — tesorería (sesiones_caja, movimientos_caja, pagos).
+ * Test de aislamiento RLS — tesorería (sesiones_caja, movimientos_caja, pagos_cliente, pagos_proveedor).
  * Corre con: pnpm test:integration
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -7,7 +7,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { sql, eq } from 'drizzle-orm';
 import postgres from 'postgres';
 import {
-  tenants, clientes, sesionesCaja, movimientosCaja, pagosCliente,
+  tenants, clientes, proveedores, sesionesCaja, movimientosCaja, pagosCliente, pagosProveedor,
 } from '../../db/schema';
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -18,12 +18,16 @@ type DB = ReturnType<typeof drizzle>;
 describe.skipIf(skip)('Aislamiento RLS: tesorería', () => {
   const client = postgres(DATABASE_URL!);
   const db: DB = drizzle(client, {
-    schema: { tenants, clientes, sesionesCaja, movimientosCaja, pagosCliente },
+    schema: {
+      tenants, clientes, proveedores, sesionesCaja, movimientosCaja, pagosCliente, pagosProveedor,
+    },
   });
 
   let tenantAId: string;
   let tenantBId: string;
   let sesionAId: string;
+  let proveedorAId: string;
+  let pagoProveedorAId: string;
 
   async function withCtx<T>(tenantId: string, cb: (tx: DB) => Promise<T>): Promise<T> {
     return db.transaction(async (tx) => {
@@ -65,14 +69,33 @@ describe.skipIf(skip)('Aislamiento RLS: tesorería', () => {
       concepto: 'Ingreso test',
       created_by: tenantAId,
     });
+
+    const [proveedor] = await db.insert(proveedores).values({
+      tenant_id: tenantAId,
+      nombre: 'Proveedor A (tesoreria isolation)',
+      cuit: '30999999999',
+    }).returning();
+    proveedorAId = proveedor.id;
+
+    const [pagoProveedor] = await db.insert(pagosProveedor).values({
+      tenant_id: tenantAId,
+      proveedor_id: proveedorAId,
+      monto: '75.00',
+      metodo_pago: 'transferencia',
+      created_by: tenantAId,
+    }).returning();
+    pagoProveedorAId = pagoProveedor.id;
   });
 
   afterAll(async () => {
     await db.delete(movimientosCaja).where(eq(movimientosCaja.tenant_id, tenantAId));
+    await db.delete(pagosProveedor).where(eq(pagosProveedor.tenant_id, tenantAId));
     await db.delete(pagosCliente).where(eq(pagosCliente.tenant_id, tenantAId));
     await db.delete(sesionesCaja).where(eq(sesionesCaja.tenant_id, tenantAId));
+    await db.delete(proveedores).where(eq(proveedores.tenant_id, tenantAId));
     await db.delete(clientes).where(eq(clientes.tenant_id, tenantAId));
     await db.delete(movimientosCaja).where(eq(movimientosCaja.tenant_id, tenantBId));
+    await db.delete(pagosProveedor).where(eq(pagosProveedor.tenant_id, tenantBId));
     await db.delete(sesionesCaja).where(eq(sesionesCaja.tenant_id, tenantBId));
     await db.delete(tenants).where(eq(tenants.id, tenantAId));
     await db.delete(tenants).where(eq(tenants.id, tenantBId));
@@ -104,11 +127,38 @@ describe.skipIf(skip)('Aislamiento RLS: tesorería', () => {
     )).rejects.toThrow();
   });
 
+  it('tenant B no lee pagos_proveedor del tenant A', async () => {
+    const rows = await withCtx(tenantBId, (tx) =>
+      tx.select().from(pagosProveedor).where(eq(pagosProveedor.id, pagoProveedorAId)),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it('tenant B no inserta pago_proveedor con tenant_id del A', async () => {
+    await expect(withCtx(tenantBId, (tx) =>
+      tx.insert(pagosProveedor).values({
+        tenant_id: tenantAId,
+        proveedor_id: proveedorAId,
+        monto: '10.00',
+        metodo_pago: 'efectivo',
+        created_by: tenantBId,
+      }),
+    )).rejects.toThrow();
+  });
+
   it('sin contexto de tenant → 0 filas (fail-safe)', async () => {
     const rows = await db.transaction(async (tx) => {
       await tx.execute(sql.raw('SET LOCAL ROLE authenticated'));
       return tx.select().from(sesionesCaja);
     });
     expect(rows.filter((r) => r.id === sesionAId)).toHaveLength(0);
+  });
+
+  it('sin contexto de tenant → pagos_proveedor devuelve 0 filas (fail-safe)', async () => {
+    const rows = await db.transaction(async (tx) => {
+      await tx.execute(sql.raw('SET LOCAL ROLE authenticated'));
+      return tx.select().from(pagosProveedor);
+    });
+    expect(rows.filter((r) => r.id === pagoProveedorAId)).toHaveLength(0);
   });
 });

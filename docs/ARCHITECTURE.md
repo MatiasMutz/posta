@@ -85,10 +85,12 @@ posta/
 │   │       ├── clientes/      # CRUD, saldo deudor (cta. cte. activa)
 │   │       ├── ventas/        # POS, historial, export IVA, AFIP mock
 │   │       ├── imports/       # motor Excel/CSV (BullMQ)
+│   │       ├── compras/       # proveedores, compras/gastos, IVA Compras
+│   │       ├── tesoreria/     # caja chica, pagos cta. cte., flujo de caja
+│   │       ├── dashboard/     # KPIs dueño + vista contador (fiscal)
 │   │       └── afip/          # puerto FacturadorElectronico (+ CLAUDE.md)
-│   │   # Roadmap: compras, tesorería (aún no en apps/api/src/modules/)
 │   └── web/                   # Next.js App Router
-│       ├── app/               # rutas (ventas, clientes, inventario, …)
+│       ├── app/               # rutas (dashboard, ventas, inventario, compras, caja, …)
 │       ├── lib/               # api-client, paginacion, money (formato ARS)
 │       └── tests/e2e/         # Playwright (+ .auth multi-rol)
 ├── services/

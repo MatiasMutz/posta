@@ -42,4 +42,4 @@ Bucket: `imports`. Archivos en `{tenantId}/{timestamp}-{filename}`.
 - El frontend obtiene la URL firmada vía `GET /imports/upload-url` y sube directo a Supabase Storage.
 - El worker descarga con el admin client (`SUPABASE_SERVICE_ROLE_KEY`).
 - Las policies de Storage están en `drizzle/0005_storage_imports.sql` (bucket `imports`).
-- **Defensa en profundidad:** además de RLS en Storage (JWT `app_metadata.tenant_id`), la API valida cada `storagePath` con `assertStoragePathDelTenant` antes de analizar/crear/descargar (tests en `storage-path.spec.ts` e `imports.service.spec.ts`).
+- **Defensa en profundidad:** además de RLS en Storage (JWT `app_metadata.tenant_id`), la API valida cada `storagePath` con `assertStoragePathDelTenant` antes de analizar/crear/descargar (tests en `storage-path.spec.ts`, `storage.isolation.integration.spec.ts` e `imports.service.spec.ts`).
